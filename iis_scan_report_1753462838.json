@@ -1,0 +1,444 @@
+{
+  "metadata": {
+    "tool": "IIS Security Scanner",
+    "version": "1.0.0",
+    "author": "IIS Scanner Framework",
+    "description": "Comprehensive IIS Security Assessment Report"
+  },
+  "target": {
+    "url": "https://httpbin.org",
+    "host": "httpbin.org",
+    "scheme": "https",
+    "port": ""
+  },
+  "summary": {
+    "duration": 115869036584,
+    "modules_run": 5,
+    "total_requests": 113,
+    "vulnerability_count": {
+      "total": 9,
+      "critical": 0,
+      "high": 4,
+      "medium": 3,
+      "low": 1
+    },
+    "info_count": 25
+  },
+  "results": {
+    "aspnet_security": {
+      "module_name": "aspnet_security",
+      "status": "COMPLETED",
+      "start_time": "2025-07-25T20:00:39.459374+03:00",
+      "end_time": "0001-01-01T00:00:00Z",
+      "duration": -9223372036854775808,
+      "request_count": 19,
+      "vulnerabilities": [
+        {
+          "id": "ASPNET-003",
+          "title": "Event Validation Disabled",
+          "description": "ASP.NET Event Validation devre dışı. Bu durum CSRF saldırılarına karşı korumayı zayıflatır.",
+          "severity": "MEDIUM",
+          "cvss": 6.1,
+          "cwe": "CWE-352",
+          "owasp": "A01:2021 – Broken Access Control",
+          "url": "https://httpbin.org",
+          "method": "GET",
+          "payload": "",
+          "response": "",
+          "evidence": "__EVENTVALIDATION field bulunamadı",
+          "references": [],
+          "remediation": "web.config'de enableEventValidation='true' ayarlayın",
+          "metadata": {}
+        }
+      ],
+      "info": [
+        {
+          "type": "viewstate_found",
+          "title": "ViewState Found",
+          "description": "ASP.NET ViewState tespit edildi",
+          "value": "Not Present",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "event_validation",
+          "title": "Event Validation",
+          "description": "ASP.NET Event Validation tespit edildi",
+          "value": "Disabled",
+          "url": "",
+          "metadata": {}
+        }
+      ]
+    },
+    "fingerprint": {
+      "module_name": "fingerprint",
+      "status": "COMPLETED",
+      "start_time": "2025-07-25T20:00:39.459273+03:00",
+      "end_time": "0001-01-01T00:00:00Z",
+      "duration": -9223372036854775808,
+      "request_count": 29,
+      "vulnerabilities": [
+        {
+          "id": "IIS-FINGERPRINT-006",
+          "title": "Dangerous ISAPI Extension Enabled",
+          "description": "Tehlikeli ISAPI extension aktif: .printer",
+          "severity": "HIGH",
+          "cvss": 7.5,
+          "cwe": "",
+          "owasp": "",
+          "url": "https://httpbin.org/test.printer",
+          "method": "GET",
+          "payload": "",
+          "response": "",
+          "evidence": "Status: 503",
+          "references": [],
+          "remediation": "Gereksiz ISAPI extension'ları devre dışı bırakın",
+          "metadata": {}
+        },
+        {
+          "id": "IIS-FINGERPRINT-006",
+          "title": "Dangerous ISAPI Extension Enabled",
+          "description": "Tehlikeli ISAPI extension aktif: .htw",
+          "severity": "HIGH",
+          "cvss": 7.5,
+          "cwe": "",
+          "owasp": "",
+          "url": "https://httpbin.org/test.htw",
+          "method": "GET",
+          "payload": "",
+          "response": "",
+          "evidence": "Status: 503",
+          "references": [],
+          "remediation": "Gereksiz ISAPI extension'ları devre dışı bırakın",
+          "metadata": {}
+        }
+      ],
+      "info": [
+        {
+          "type": "server",
+          "title": "Server Header",
+          "description": "IIS server header bilgisi",
+          "value": "gunicorn/19.9.0",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "isapi_extension",
+          "title": "ISAPI Extension",
+          "description": "Aktif ISAPI extension tespit edildi",
+          "value": ".shtml",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "isapi_extension",
+          "title": "ISAPI Extension",
+          "description": "Aktif ISAPI extension tespit edildi",
+          "value": ".stm",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "isapi_extension",
+          "title": "ISAPI Extension",
+          "description": "Aktif ISAPI extension tespit edildi",
+          "value": ".printer",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "isapi_extension",
+          "title": "ISAPI Extension",
+          "description": "Aktif ISAPI extension tespit edildi",
+          "value": ".htw",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "isapi_extension",
+          "title": "ISAPI Extension",
+          "description": "Aktif ISAPI extension tespit edildi",
+          "value": ".dll",
+          "url": "",
+          "metadata": {}
+        }
+      ]
+    },
+    "http_methods": {
+      "module_name": "http_methods",
+      "status": "COMPLETED",
+      "start_time": "2025-07-25T20:00:39.45931+03:00",
+      "end_time": "0001-01-01T00:00:00Z",
+      "duration": -9223372036854775808,
+      "request_count": 44,
+      "vulnerabilities": null,
+      "info": [
+        {
+          "type": "allowed_method",
+          "title": "Allowed HTTP Method",
+          "description": "HTTP method allowed: GET",
+          "value": "Status: 200",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "allowed_method",
+          "title": "Allowed HTTP Method",
+          "description": "HTTP method allowed: HEAD",
+          "value": "Status: 200",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "allowed_method",
+          "title": "Allowed HTTP Method",
+          "description": "HTTP method allowed: OPTIONS",
+          "value": "Status: 200",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "allow_header",
+          "title": "Allow Header",
+          "description": "OPTIONS response Allow header",
+          "value": "HEAD, GET, OPTIONS",
+          "url": "",
+          "metadata": {}
+        }
+      ]
+    },
+    "ssl_tls_security": {
+      "module_name": "ssl_tls_security",
+      "status": "COMPLETED",
+      "start_time": "2025-07-25T20:00:39.459354+03:00",
+      "end_time": "0001-01-01T00:00:00Z",
+      "duration": -9223372036854775808,
+      "request_count": 2,
+      "vulnerabilities": [
+        {
+          "id": "SSL-TLS-007",
+          "title": "Insecure SSL/TLS Protocol: TLS 1.0",
+          "description": "Güvensiz SSL/TLS protokolü destekleniyor: TLS 1.0",
+          "severity": "HIGH",
+          "cvss": 7.4,
+          "cwe": "CWE-327",
+          "owasp": "A02:2021 – Cryptographic Failures",
+          "url": "https://httpbin.org:443",
+          "method": "",
+          "payload": "",
+          "response": "",
+          "evidence": "TLS 1.0 protokolü aktif",
+          "references": [],
+          "remediation": "Sadece TLS 1.2 ve TLS 1.3 kullanın",
+          "metadata": {}
+        },
+        {
+          "id": "SSL-TLS-007",
+          "title": "Insecure SSL/TLS Protocol: TLS 1.1",
+          "description": "Güvensiz SSL/TLS protokolü destekleniyor: TLS 1.1",
+          "severity": "HIGH",
+          "cvss": 7.4,
+          "cwe": "CWE-327",
+          "owasp": "A02:2021 – Cryptographic Failures",
+          "url": "https://httpbin.org:443",
+          "method": "",
+          "payload": "",
+          "response": "",
+          "evidence": "TLS 1.1 protokolü aktif",
+          "references": [],
+          "remediation": "Sadece TLS 1.2 ve TLS 1.3 kullanın",
+          "metadata": {}
+        },
+        {
+          "id": "SSL-TLS-009",
+          "title": "Missing HSTS Header",
+          "description": "HTTP Strict Transport Security (HSTS) header eksik",
+          "severity": "MEDIUM",
+          "cvss": 6.1,
+          "cwe": "CWE-319",
+          "owasp": "A05:2021 – Security Misconfiguration",
+          "url": "https://httpbin.org",
+          "method": "",
+          "payload": "",
+          "response": "",
+          "evidence": "Strict-Transport-Security header bulunamadı",
+          "references": [],
+          "remediation": "HSTS header'ını ekleyin: Strict-Transport-Security: max-age=31536000; includeSubDomains",
+          "metadata": {}
+        },
+        {
+          "id": "SSL-TLS-012",
+          "title": "SSL/TLS Renegotiation Enabled",
+          "description": "SSL/TLS renegotiation aktif - DoS saldırılarına açık olabilir",
+          "severity": "MEDIUM",
+          "cvss": 5.3,
+          "cwe": "CWE-400",
+          "owasp": "A06:2021 – Vulnerable and Outdated Components",
+          "url": "https://httpbin.org:443",
+          "method": "",
+          "payload": "",
+          "response": "",
+          "evidence": "TLS renegotiation mümkün",
+          "references": [
+            "CVE-2009-3555"
+          ],
+          "remediation": "TLS renegotiation'ı devre dışı bırakın",
+          "metadata": {}
+        },
+        {
+          "id": "SSL-TLS-013",
+          "title": "SNI Bypass Possible",
+          "description": "SNI olmadan da SSL bağlantısı kurulabiliyor",
+          "severity": "LOW",
+          "cvss": 3.1,
+          "cwe": "CWE-295",
+          "owasp": "",
+          "url": "https://httpbin.org:443",
+          "method": "",
+          "payload": "",
+          "response": "",
+          "evidence": "SNI olmadan bağlantı başarılı",
+          "references": [],
+          "remediation": "SNI gereksinimini zorunlu hale getirin",
+          "metadata": {}
+        }
+      ],
+      "info": [
+        {
+          "type": "cert_subject",
+          "title": "Certificate Subject",
+          "description": "Sertifika subject",
+          "value": "CN=httpbin.org",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "cert_issuer",
+          "title": "Certificate Issuer",
+          "description": "Sertifika issuer",
+          "value": "CN=Amazon RSA 2048 M03,O=Amazon,C=US",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "cert_not_before",
+          "title": "Certificate Valid From",
+          "description": "Sertifika geçerlilik başlangıcı",
+          "value": "2025-07-20 00:00:00",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "cert_not_after",
+          "title": "Certificate Valid Until",
+          "description": "Sertifika geçerlilik sonu",
+          "value": "2026-08-17 23:59:59",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "cert_signature_algorithm",
+          "title": "Certificate Signature Algorithm",
+          "description": "Sertifika imza algoritması",
+          "value": "SHA256-RSA",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "cert_key_size",
+          "title": "Certificate Key Size",
+          "description": "Sertifika anahtar boyutu",
+          "value": "2048 bits",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "supported_protocol",
+          "title": "Supported Protocol",
+          "description": "Desteklenen protokol: TLS 1.0",
+          "value": "TLS 1.0",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "supported_protocol",
+          "title": "Supported Protocol",
+          "description": "Desteklenen protokol: TLS 1.1",
+          "value": "TLS 1.1",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "supported_protocol",
+          "title": "Supported Protocol",
+          "description": "Desteklenen protokol: TLS 1.2",
+          "value": "TLS 1.2",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "cipher_suite",
+          "title": "Negotiated Cipher Suite",
+          "description": "Negotiate edilen cipher suite",
+          "value": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "sni_support",
+          "title": "SNI Support",
+          "description": "Server Name Indication desteği",
+          "value": "Supported",
+          "url": "",
+          "metadata": {}
+        }
+      ]
+    },
+    "windows_detection": {
+      "module_name": "windows_detection",
+      "status": "COMPLETED",
+      "start_time": "2025-07-25T20:00:39.459764+03:00",
+      "end_time": "0001-01-01T00:00:00Z",
+      "duration": -9223372036854775808,
+      "request_count": 19,
+      "vulnerabilities": [
+        {
+          "id": "WIN-DETECT-001",
+          "title": "Non-Windows Server Detected",
+          "description": "Hedef sistem Windows Server değil. IIS sadece Windows Server üzerinde çalışır.",
+          "severity": "INFO",
+          "cvss": 0,
+          "cwe": "",
+          "owasp": "",
+          "url": "https://httpbin.org",
+          "method": "",
+          "payload": "",
+          "response": "",
+          "evidence": "Windows Server tespit edilmedi",
+          "references": [],
+          "remediation": "IIS taraması için Windows Server gereklidir",
+          "metadata": {}
+        }
+      ],
+      "info": [
+        {
+          "type": "server_header",
+          "title": "Server Header",
+          "description": "HTTP Server header bilgisi",
+          "value": "gunicorn/19.9.0",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "os_detection",
+          "title": "Operating System",
+          "description": "Tespit edilen işletim sistemi",
+          "value": "Non-Windows",
+          "url": "",
+          "metadata": {}
+        }
+      ]
+    }
+  },
+  "generated_at": "2025-07-25T20:02:34.827994+03:00"
+}

@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "tool": "IIS Security Scanner",
+    "version": "1.0.0",
+    "author": "IIS Scanner Framework",
+    "description": "Comprehensive IIS Security Assessment Report"
+  },
+  "target": {
+    "url": "https://microsoft.com",
+    "host": "microsoft.com",
+    "scheme": "https",
+    "port": ""
+  },
+  "summary": {
+    "duration": 25972442583,
+    "modules_run": 1,
+    "total_requests": 17,
+    "vulnerability_count": {
+      "total": 0,
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "info_count": 5
+  },
+  "results": {
+    "windows_detection": {
+      "module_name": "windows_detection",
+      "status": "COMPLETED",
+      "start_time": "2025-07-25T20:10:14.650824+03:00",
+      "end_time": "0001-01-01T00:00:00Z",
+      "duration": -9223372036854775808,
+      "request_count": 17,
+      "vulnerabilities": null,
+      "info": [
+        {
+          "type": "aspnet_extension",
+          "title": "ASP.NET Extension",
+          "description": "ASP.NET extension response: .aspx",
+          "value": "Status: 301",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "aspnet_extension",
+          "title": "ASP.NET Extension",
+          "description": "ASP.NET extension response: .asmx",
+          "value": "Status: 301",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "aspnet_extension",
+          "title": "ASP.NET Extension",
+          "description": "ASP.NET extension response: .ashx",
+          "value": "Status: 301",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "aspnet_extension",
+          "title": "ASP.NET Extension",
+          "description": "ASP.NET extension response: .axd",
+          "value": "Status: 301",
+          "url": "",
+          "metadata": {}
+        },
+        {
+          "type": "os_detection",
+          "title": "Operating System",
+          "description": "Tespit edilen işletim sistemi",
+          "value": "Windows Server",
+          "url": "",
+          "metadata": {}
+        }
+      ]
+    }
+  },
+  "generated_at": "2025-07-25T20:10:40.623345+03:00"
+}
