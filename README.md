@@ -1,6 +1,18 @@
-# IIS Security Scanner Framework
+# IISMap - IIS Security Scanner Framework
 
 Comprehensive IIS (Internet Information Services) security scanning and vulnerability detection framework. Written in Go with high performance and modular architecture.
+
+## 🎯 Main Tool: IISMap
+
+IISMap is the main scanning engine that provides both command-line and interactive console interfaces for comprehensive IIS security assessment.
+
+### Key Features:
+- **Interactive Console Mode**: MSFConsole-like interface for advanced users
+- **Command-Line Interface**: Direct scanning with command-line arguments
+- **Modular Architecture**: Extensible module system for different vulnerability types
+- **Multiple Output Formats**: JSON, HTML, XML reporting
+- **High Performance**: Concurrent scanning with configurable threading
+- **Stealth Capabilities**: Rate limiting and evasion techniques
 
 ## 🚀 Features
 
@@ -72,16 +84,19 @@ make filehunter
 ```bash
 # Clone the repository
 git clone https://github.com/ibrahmsql/iismap.git
-cd issmap
+cd iismap
 
 # Install dependencies
 go mod tidy
 
-# Build binary
-go build -o issmap .
+# Build main binary
+go build -o iismap .
 
 # Or use Makefile
 make build
+
+# Build all tools
+make all
 ```
 
 ## 🔧 Usage
@@ -90,46 +105,95 @@ make build
 
 ```bash
 # Basic scan
-./issmap --target https://target.com
+./iismap --target https://target.com
 
 # Comprehensive scan (all modules)
-./issmap --target https://target.com --comprehensive
+./iismap --target https://target.com --comprehensive
 
 # Run specific modules
-./issmap --target https://target.com --modules fingerprint,tilde,config
+./iismap --target https://target.com --modules fingerprint,tilde,config
 
 # Verbose output
-./issmap --target https://target.com --verbose
+./iismap --target https://target.com --verbose
 
 # Debug mode
-./issmap --target https://target.com --debug
+./iismap --target https://target.com --debug
 ```
 
-###  Options
+### Interactive Console Mode
+
+IISMap provides an interactive console similar to MSFConsole for advanced users:
+
+```bash
+# Start interactive console
+./iismap console
+
+# Console commands
+iismap> set target https://target.com
+iismap> set output report.json
+iismap> set threads 10
+iismap> set delay 0.5
+iismap> set timeout 15
+iismap> set wordlist custom_wordlist.txt
+iismap> show options
+iismap> run
+iismap> exit
+```
+
+#### Console Commands:
+- `set <option> <value>` - Set scanning options
+- `show options` - Display current configuration
+- `show modules` - List available modules
+- `run` - Start scanning with current settings
+- `help` - Show available commands
+- `exit` - Exit console
+
+#### Available Console Options:
+- `target` - Target URL to scan
+- `output` - Output file path
+- `format` - Output format (json, html, xml)
+- `threads` - Number of concurrent threads
+- `delay` - Delay between requests (seconds)
+- `timeout` - Request timeout (seconds)
+- `proxy` - Proxy server URL
+- `user-agent` - Custom User-Agent string
+- `headers` - Custom HTTP headers
+- `cookies` - Custom cookies
+- `wordlist` - Custom wordlist file path
+- `modules` - Specific modules to run
+- `comprehensive` - Enable comprehensive scanning
+- `stealth` - Enable stealth mode
+- `fast` - Enable fast scanning mode
+
+  #### Console Screenshot:
+![IISMap Console Interface](screenshots/console-interface.png)
+*Interactive console mode showing configuration and scanning process*
+
+### Advanced Options
 
 ```bash
 # Stealth mode (slow scanning)
-./issmap --target https://target.com --stealth --delay 2
+./iismap --target https://target.com --stealth --delay 2
 
 # Custom thread count
-./issmap --target https://target.com --threads 20
+./iismap --target https://target.com --threads 20
 
 # Proxy usage
-./issmap --target https://target.com --proxy http://proxy:8080
+./iismap --target https://target.com --proxy http://proxy:8080
 
 # Custom User-Agent
-./issmap --target https://target.com --user-agent "Custom Scanner 1.0"
+./iismap --target https://target.com --user-agent "Custom Scanner 1.0"
 
 # Custom headers
-./issmap --target https://target.com --headers "Authorization: Bearer token123"
+./iismap --target https://target.com --headers "Authorization: Bearer token123"
 
 # Cookies
-./issmap --target https://target.com --cookies "session=abc123; auth=xyz789"
+./iismap --target https://target.com --cookies "session=abc123; auth=xyz789"
 
 # Different output formats
-./issmap --target https://target.com --format html --output report.html
-./issmap --target https://target.com --format json --output report.json
-./issmap --target https://target.com --format xml --output report.xml
+./iismap --target https://target.com --format html --output report.html
+./iismap --target https://target.com --format json --output report.json
+./iismap --target https://target.com --format xml --output report.xml
 ```
 
 ### Available Modules
@@ -199,9 +263,9 @@ The framework automatically generates professional HTML reports:
 package modules
 
 import (
-    "issmap/internal/config"
-    "issmap/pkg/http"
-    "issmap/pkg/logger"
+    "iismap/internal/config"
+    "iismap/pkg/http"
+    "iismap/pkg/logger"
 )
 
 type CustomModule struct {
@@ -222,7 +286,11 @@ func (c *CustomModule) Run(client *http.Client) (*ModuleResult, error) {
     c.Start()
     defer c.End()
     
-    // Tarama logic'i burada
+    // Scanning logic here
+    var vulnerabilities []Vulnerability
+    var info []Information
+    
+    // Implement your scanning logic
     
     return c.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
@@ -264,6 +332,3 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ---
 
 **Disclaimer**: This tool is developed for educational and legal penetration testing purposes only. The user bears all responsibility for any misuse.
-
-
-**Disclaimer**: Bu araç eğitim ve yasal penetrasyon testi amaçları için geliştirilmiştir. Kötüye kullanımdan doğacak sorumluluk kullanıcıya aittir.
