@@ -8,14 +8,14 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// ConfigModule IIS Configuration Vulnerabilities modülü
+// ConfigModule IIS Configuration Vulnerabilities module
 type ConfigModule struct {
 	*BaseModule
 	config *config.Config
 	logger *logger.Logger
 }
 
-// NewConfigModule yeni config modülü oluşturur
+// NewConfigModule creates new config module
 func NewConfigModule(cfg *config.Config, log *logger.Logger) Module {
 	return &ConfigModule{
 		BaseModule: NewBaseModule("config", "IIS Configuration Vulnerabilities Scanner"),
@@ -24,7 +24,7 @@ func NewConfigModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-// Run config modülünü çalıştırır
+// Run executes config module
 func (c *ConfigModule) Run(client *http.Client) (*ModuleResult, error) {
 	c.Start()
 	defer c.End()
@@ -34,49 +34,49 @@ func (c *ConfigModule) Run(client *http.Client) (*ModuleResult, error) {
 
 	baseURL := c.config.GetBaseURL()
 
-	// 1. web.config exposure kontrolü
-	c.logger.Debug("web.config exposure kontrol ediliyor...")
+	// 1. web.config exposure check
+	c.logger.Debug("Checking web.config exposure...")
 	webConfigVulns := c.checkWebConfigExposure(client, baseURL)
 	vulnerabilities = append(vulnerabilities, webConfigVulns...)
 
-	// 2. machine.config leak tespiti
-	c.logger.Debug("machine.config leak tespiti yapılıyor...")
+	// 2. machine.config leak detection
+	c.logger.Debug("Detecting machine.config leak...")
 	machineConfigVulns := c.checkMachineConfigLeak(client, baseURL)
 	vulnerabilities = append(vulnerabilities, machineConfigVulns...)
 
 	// 3. Global.asa/Global.asax exposure
-	c.logger.Debug("Global.asa/Global.asax exposure kontrol ediliyor...")
+	c.logger.Debug("Checking Global.asa/Global.asax exposure...")
 	globalVulns := c.checkGlobalFileExposure(client, baseURL)
 	vulnerabilities = append(vulnerabilities, globalVulns...)
 
 	// 4. Bin directory enumeration
-	c.logger.Debug("Bin directory enumeration yapılıyor...")
+	c.logger.Debug("Performing bin directory enumeration...")
 	binVulns := c.checkBinDirectoryAccess(client, baseURL)
 	vulnerabilities = append(vulnerabilities, binVulns...)
 
-	// 5. App_Data directory access kontrolü
-	c.logger.Debug("App_Data directory access kontrol ediliyor...")
+	// 5. App_Data directory access check
+	c.logger.Debug("Checking App_Data directory access...")
 	appDataVulns := c.checkAppDataAccess(client, baseURL)
 	vulnerabilities = append(vulnerabilities, appDataVulns...)
 
 	// 6. Temporary ASP.NET files exposure
-	c.logger.Debug("Temporary ASP.NET files exposure kontrol ediliyor...")
+	c.logger.Debug("Checking temporary ASP.NET files exposure...")
 	tempVulns := c.checkTempFilesExposure(client, baseURL)
 	vulnerabilities = append(vulnerabilities, tempVulns...)
 
-	// 7. Backup files tespiti
-	c.logger.Debug("Backup files tespiti yapılıyor...")
+	// 7. Backup files detection
+	c.logger.Debug("Detecting backup files...")
 	backupVulns := c.checkBackupFiles(client, baseURL)
 	vulnerabilities = append(vulnerabilities, backupVulns...)
 
 	return c.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
 
-// checkWebConfigExposure web.config dosyası exposure'ını kontrol eder
+// checkWebConfigExposure checks web.config file exposure
 func (c *ConfigModule) checkWebConfigExposure(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// web.config dosyası path'leri
+	// web.config file paths
 	configPaths := []string{
 		"/web.config",
 		"/Web.config",
@@ -103,12 +103,12 @@ func (c *ConfigModule) checkWebConfigExposure(client *http.Client, baseURL strin
 		c.IncrementRequests()
 
 		if resp.StatusCode == 200 {
-			// web.config içeriği kontrolü
+			// web.config content check
 			if c.isWebConfigContent(resp.Body) {
 				severity := "HIGH"
 				cvss := 7.5
 
-				// Hassas bilgi kontrolü
+				// Sensitive information check
 				if c.containsSensitiveInfo(resp.Body) {
 					severity = "CRITICAL"
 					cvss = 9.1
@@ -117,14 +117,14 @@ func (c *ConfigModule) checkWebConfigExposure(client *http.Client, baseURL strin
 				vuln := CreateVulnerability(
 					"IIS-CONFIG-001",
 					"web.config File Exposure",
-					fmt.Sprintf("web.config dosyası erişilebilir durumda: %s", path),
+					fmt.Sprintf("web.config file is accessible: %s", path),
 					severity,
 					cvss,
 				)
 				vuln.URL = baseURL + path
 				vuln.Method = "GET"
 				vuln.Evidence = c.extractSensitiveConfigInfo(resp.Body)
-				vuln.Remediation = "web.config dosyasına erişimi engelleyin ve hassas bilgileri şifreleyin"
+				vuln.Remediation = "Block access to web.config file and encrypt sensitive information"
 				vuln.CWE = "CWE-200"
 				vuln.OWASP = "A06:2021 – Vulnerable and Outdated Components"
 				vulns = append(vulns, vuln)
@@ -135,11 +135,11 @@ func (c *ConfigModule) checkWebConfigExposure(client *http.Client, baseURL strin
 	return vulns
 }
 
-// checkMachineConfigLeak machine.config leak'ini kontrol eder
+// checkMachineConfigLeak checks machine.config leak
 func (c *ConfigModule) checkMachineConfigLeak(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// machine.config leak path'leri
+	// machine.config leak paths
 	leakPaths := []string{
 		"/machine.config",
 		"/Machine.config",
@@ -161,14 +161,14 @@ func (c *ConfigModule) checkMachineConfigLeak(client *http.Client, baseURL strin
 			vuln := CreateVulnerability(
 				"IIS-CONFIG-002",
 				"machine.config File Leak",
-				fmt.Sprintf("machine.config dosyası sızdırılıyor: %s", path),
+				fmt.Sprintf("machine.config file is leaking: %s", path),
 				"CRITICAL",
 				9.8,
 			)
 			vuln.URL = baseURL + path
 			vuln.Method = "GET"
-			vuln.Evidence = "machine.config içeriği erişilebilir"
-			vuln.Remediation = "machine.config dosyasına erişimi tamamen engelleyin"
+			vuln.Evidence = "machine.config content is accessible"
+			vuln.Remediation = "Completely block access to machine.config file"
 			vuln.CWE = "CWE-200"
 			vulns = append(vulns, vuln)
 		}
@@ -177,11 +177,11 @@ func (c *ConfigModule) checkMachineConfigLeak(client *http.Client, baseURL strin
 	return vulns
 }
 
-// checkGlobalFileExposure Global.asa/Global.asax exposure'ını kontrol eder
+// checkGlobalFileExposure checks Global.asa/Global.asax exposure
 func (c *ConfigModule) checkGlobalFileExposure(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Global dosya path'leri
+	// Global file paths
 	globalPaths := []string{
 		"/Global.asa",
 		"/Global.asax",
@@ -205,19 +205,19 @@ func (c *ConfigModule) checkGlobalFileExposure(client *http.Client, baseURL stri
 		c.IncrementRequests()
 
 		if resp.StatusCode == 200 {
-			// Global dosya içeriği kontrolü
+			// Global file content check
 			if c.isGlobalFileContent(resp.Body) {
 				vuln := CreateVulnerability(
 					"IIS-CONFIG-003",
 					"Global Application File Exposure",
-					fmt.Sprintf("Global uygulama dosyası erişilebilir: %s", path),
+					fmt.Sprintf("Global application file is accessible: %s", path),
 					"MEDIUM",
 					6.5,
 				)
 				vuln.URL = baseURL + path
 				vuln.Method = "GET"
-				vuln.Evidence = "Global dosya içeriği görüntülenebilir"
-				vuln.Remediation = "Global dosyalarına doğrudan erişimi engelleyin"
+				vuln.Evidence = "Global file content is viewable"
+				vuln.Remediation = "Block direct access to Global files"
 				vuln.CWE = "CWE-200"
 				vulns = append(vulns, vuln)
 			}
@@ -227,11 +227,11 @@ func (c *ConfigModule) checkGlobalFileExposure(client *http.Client, baseURL stri
 	return vulns
 }
 
-// checkBinDirectoryAccess bin directory erişimini kontrol eder
+// checkBinDirectoryAccess checks bin directory access
 func (c *ConfigModule) checkBinDirectoryAccess(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Bin directory path'leri
+	// Bin directory paths
 	binPaths := []string{
 		"/bin/",
 		"/Bin/",
@@ -250,25 +250,25 @@ func (c *ConfigModule) checkBinDirectoryAccess(client *http.Client, baseURL stri
 		c.IncrementRequests()
 
 		if resp.StatusCode == 200 || resp.StatusCode == 403 {
-			// Directory listing kontrolü
+			// Directory listing check
 			if c.isDirectoryListing(resp.Body) {
 				vuln := CreateVulnerability(
 					"IIS-CONFIG-004",
 					"Bin Directory Listing Enabled",
-					fmt.Sprintf("Bin directory listing aktif: %s", path),
+					fmt.Sprintf("Bin directory listing is active: %s", path),
 					"MEDIUM",
 					5.3,
 				)
 				vuln.URL = baseURL + path
 				vuln.Method = "GET"
-				vuln.Evidence = "Directory listing görüntülenebilir"
-				vuln.Remediation = "Bin directory'ye erişimi engelleyin ve directory listing'i devre dışı bırakın"
+				vuln.Evidence = "Directory listing is viewable"
+				vuln.Remediation = "Block access to Bin directory and disable directory listing"
 				vuln.CWE = "CWE-200"
 				vulns = append(vulns, vuln)
 			}
 		}
 
-		// DLL dosyalarına doğrudan erişim testi
+		// Direct access test to DLL files
 		dllFiles := []string{"System.Web.dll", "System.dll", "mscorlib.dll"}
 		for _, dll := range dllFiles {
 			dllResp, err := client.Get(baseURL + path + dll)
@@ -281,14 +281,14 @@ func (c *ConfigModule) checkBinDirectoryAccess(client *http.Client, baseURL stri
 				vuln := CreateVulnerability(
 					"IIS-CONFIG-005",
 					"DLL File Direct Access",
-					fmt.Sprintf("DLL dosyasına doğrudan erişim mümkün: %s%s", path, dll),
+					fmt.Sprintf("Direct access to DLL file is possible: %s%s", path, dll),
 					"HIGH",
 					7.5,
 				)
 				vuln.URL = baseURL + path + dll
 				vuln.Method = "GET"
-				vuln.Evidence = "DLL dosyası indirilebilir"
-				vuln.Remediation = "DLL dosyalarına doğrudan erişimi engelleyin"
+				vuln.Evidence = "DLL file is downloadable"
+				vuln.Remediation = "Block direct access to DLL files"
 				vuln.CWE = "CWE-200"
 				vulns = append(vulns, vuln)
 			}
@@ -298,11 +298,11 @@ func (c *ConfigModule) checkBinDirectoryAccess(client *http.Client, baseURL stri
 	return vulns
 }
 
-// checkAppDataAccess App_Data directory erişimini kontrol eder
+// checkAppDataAccess checks App_Data directory access
 func (c *ConfigModule) checkAppDataAccess(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// App_Data path'leri
+	// App_Data paths
 	appDataPaths := []string{
 		"/App_Data/",
 		"/app_data/",
@@ -325,14 +325,14 @@ func (c *ConfigModule) checkAppDataAccess(client *http.Client, baseURL string) [
 			vuln := CreateVulnerability(
 				"IIS-CONFIG-006",
 				"App_Data Directory Access",
-				fmt.Sprintf("App_Data directory'ye erişim mümkün: %s", path),
+				fmt.Sprintf("App_Data directory access is possible: %s", path),
 				"HIGH",
 				7.5,
 			)
 			vuln.URL = baseURL + path
 			vuln.Method = "GET"
-			vuln.Evidence = "App_Data içeriği erişilebilir"
-			vuln.Remediation = "App_Data directory'ye erişimi tamamen engelleyin"
+			vuln.Evidence = "App_Data content is accessible"
+			vuln.Remediation = "Completely block access to App_Data directory"
 			vuln.CWE = "CWE-200"
 			vulns = append(vulns, vuln)
 		}
@@ -341,11 +341,11 @@ func (c *ConfigModule) checkAppDataAccess(client *http.Client, baseURL string) [
 	return vulns
 }
 
-// checkTempFilesExposure temporary ASP.NET files exposure'ını kontrol eder
+// checkTempFilesExposure checks temporary ASP.NET files exposure
 func (c *ConfigModule) checkTempFilesExposure(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Temporary files path'leri
+	// Temporary files paths
 	tempPaths := []string{
 		"/Temporary ASP.NET Files/",
 		"/Windows/Microsoft.NET/Framework/v4.0.30319/Temporary ASP.NET Files/",
@@ -368,14 +368,14 @@ func (c *ConfigModule) checkTempFilesExposure(client *http.Client, baseURL strin
 			vuln := CreateVulnerability(
 				"IIS-CONFIG-007",
 				"Temporary Files Directory Exposure",
-				fmt.Sprintf("Temporary files directory erişilebilir: %s", path),
+				fmt.Sprintf("Temporary files directory is accessible: %s", path),
 				"MEDIUM",
 				5.3,
 			)
 			vuln.URL = baseURL + path
 			vuln.Method = "GET"
-			vuln.Evidence = "Temporary files directory listing görüntülenebilir"
-			vuln.Remediation = "Temporary files directory'ye erişimi engelleyin"
+			vuln.Evidence = "Temporary files directory listing is viewable"
+			vuln.Remediation = "Block access to temporary files directory"
 			vuln.CWE = "CWE-200"
 			vulns = append(vulns, vuln)
 		}
@@ -384,11 +384,11 @@ func (c *ConfigModule) checkTempFilesExposure(client *http.Client, baseURL strin
 	return vulns
 }
 
-// checkBackupFiles backup dosyalarını kontrol eder
+// checkBackupFiles checks backup files
 func (c *ConfigModule) checkBackupFiles(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Backup file pattern'ları
+	// Backup file patterns
 	backupPatterns := []string{
 		"/backup/",
 		"/backups/",
@@ -419,14 +419,14 @@ func (c *ConfigModule) checkBackupFiles(client *http.Client, baseURL string) []V
 			vuln := CreateVulnerability(
 				"IIS-CONFIG-008",
 				"Backup File Exposure",
-				fmt.Sprintf("Backup dosyası erişilebilir: %s", pattern),
+				fmt.Sprintf("Backup file is accessible: %s", pattern),
 				"MEDIUM",
 				6.5,
 			)
 			vuln.URL = baseURL + pattern
 			vuln.Method = "GET"
-			vuln.Evidence = "Backup dosyası indirilebilir"
-			vuln.Remediation = "Backup dosyalarını web root dışına taşıyın"
+			vuln.Evidence = "Backup file is downloadable"
+			vuln.Remediation = "Move backup files outside web root"
 			vuln.CWE = "CWE-200"
 			vulns = append(vulns, vuln)
 		}
@@ -479,7 +479,7 @@ func (c *ConfigModule) containsSensitiveInfo(body string) bool {
 }
 
 func (c *ConfigModule) extractSensitiveConfigInfo(body string) string {
-	// Hassas bilgilerin bir kısmını evidence olarak döndür
+	// Return part of sensitive information as evidence
 	if len(body) > 500 {
 		return body[:500] + "..."
 	}

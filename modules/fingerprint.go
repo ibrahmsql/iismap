@@ -10,14 +10,14 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// FingerprintModule IIS fingerprinting modülü
+// FingerprintModule IIS fingerprinting module
 type FingerprintModule struct {
 	*BaseModule
 	config *config.Config
 	logger *logger.Logger
 }
 
-// NewFingerprintModule yeni fingerprint modülü oluşturur
+// NewFingerprintModule creates a new fingerprint module
 func NewFingerprintModule(cfg *config.Config, log *logger.Logger) Module {
 	return &FingerprintModule{
 		BaseModule: NewBaseModule("fingerprint", "IIS Version Detection & Fingerprinting"),
@@ -26,7 +26,7 @@ func NewFingerprintModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-// Run fingerprinting modülünü çalıştırır
+// Run runs the fingerprinting module
 func (f *FingerprintModule) Run(client *http.Client) (*ModuleResult, error) {
 	f.Start()
 	defer f.End()
@@ -36,32 +36,32 @@ func (f *FingerprintModule) Run(client *http.Client) (*ModuleResult, error) {
 
 	baseURL := f.config.GetBaseURL()
 
-	// 1. Server Header Analizi
-	f.logger.Debug("Server header analizi yapılıyor...")
+	// 1. Server Header Analysis
+	f.logger.Debug("Server header analysis in progress...")
 	serverInfo, serverVulns := f.analyzeServerHeaders(client, baseURL)
 	info = append(info, serverInfo...)
 	vulnerabilities = append(vulnerabilities, serverVulns...)
 
-	// 2. IIS Version-Specific Response Pattern Analizi
-	f.logger.Debug("IIS version pattern analizi yapılıyor...")
+	// 2. IIS Version-Specific Response Pattern Analysis
+	f.logger.Debug("IIS version pattern analysis in progress...")
 	versionInfo, versionVulns := f.analyzeVersionPatterns(client, baseURL)
 	info = append(info, versionInfo...)
 	vulnerabilities = append(vulnerabilities, versionVulns...)
 
-	// 3. Hidden IIS Modules Tespiti
-	f.logger.Debug("Gizli IIS modülleri taranıyor...")
+	// 3. Hidden IIS Modules Detection
+	f.logger.Debug("Scanning for hidden IIS modules...")
 	moduleInfo, moduleVulns := f.detectHiddenModules(client, baseURL)
 	info = append(info, moduleInfo...)
 	vulnerabilities = append(vulnerabilities, moduleVulns...)
 
 	// 4. ISAPI Extension Enumeration
-	f.logger.Debug("ISAPI extension'ları taranıyor...")
+	f.logger.Debug("Scanning ISAPI extensions...")
 	isapiInfo, isapiVulns := f.enumerateISAPIExtensions(client, baseURL)
 	info = append(info, isapiInfo...)
 	vulnerabilities = append(vulnerabilities, isapiVulns...)
 
-	// 5. ETW Leak Tespiti
-	f.logger.Debug("ETW leak tespiti yapılıyor...")
+	// 5. ETW Leak Detection
+	f.logger.Debug("ETW leak detection in progress...")
 	etwInfo, etwVulns := f.detectETWLeaks(client, baseURL)
 	info = append(info, etwInfo...)
 	vulnerabilities = append(vulnerabilities, etwVulns...)
@@ -69,7 +69,7 @@ func (f *FingerprintModule) Run(client *http.Client) (*ModuleResult, error) {
 	return f.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
 
-// analyzeServerHeaders server header'larını analiz eder
+// analyzeServerHeaders analyzes server headers
 func (f *FingerprintModule) analyzeServerHeaders(client *http.Client, baseURL string) ([]Information, []Vulnerability) {
 	var info []Information
 	var vulns []Vulnerability
@@ -80,31 +80,31 @@ func (f *FingerprintModule) analyzeServerHeaders(client *http.Client, baseURL st
 	}
 	f.IncrementRequests()
 
-	// Server header kontrolü
+	// Server header check
 	serverHeader := resp.GetHeader("Server")
 	if serverHeader != "" {
 		info = append(info, CreateInformation("server", "Server Header",
-			"IIS server header bilgisi", serverHeader))
+			"IIS server header information", serverHeader))
 
-		// IIS version tespiti
+		// IIS version detection
 		if strings.Contains(strings.ToLower(serverHeader), "iis") {
 			version := f.extractIISVersion(serverHeader)
 			if version != "" {
 				info = append(info, CreateInformation("version", "IIS Version",
-					"Tespit edilen IIS versiyonu", version))
+					"Detected IIS version", version))
 
-				// Eski versiyon kontrolü
+				// Old version check
 				if f.isVulnerableVersion(version) {
 					vuln := CreateVulnerability(
 						"IIS-FINGERPRINT-001",
 						"Outdated IIS Version Detected",
-						fmt.Sprintf("Eski IIS versiyonu tespit edildi: %s", version),
+						fmt.Sprintf("Outdated IIS version detected: %s", version),
 						"MEDIUM",
 						5.3,
 					)
 					vuln.URL = baseURL
 					vuln.Evidence = serverHeader
-					vuln.Remediation = "IIS'i en son sürüme güncelleyin"
+					vuln.Remediation = "Update IIS to the latest version"
 					vulns = append(vulns, vuln)
 				}
 			}
@@ -115,69 +115,69 @@ func (f *FingerprintModule) analyzeServerHeaders(client *http.Client, baseURL st
 			vuln := CreateVulnerability(
 				"IIS-FINGERPRINT-002",
 				"Verbose Server Header Information Disclosure",
-				"Server header'ı fazla bilgi içeriyor",
+				"Server header contains too much information",
 				"LOW",
 				3.1,
 			)
 			vuln.URL = baseURL
 			vuln.Evidence = serverHeader
-			vuln.Remediation = "Server header'ını minimize edin veya gizleyin"
+			vuln.Remediation = "Minimize or hide the server header"
 			vulns = append(vulns, vuln)
 		}
 	}
 
-	// X-Powered-By header kontrolü
+	// X-Powered-By header check
 	poweredBy := resp.GetHeader("X-Powered-By")
 	if poweredBy != "" {
 		info = append(info, CreateInformation("powered_by", "X-Powered-By Header",
-			"X-Powered-By header bilgisi", poweredBy))
+			"X-Powered-By header information", poweredBy))
 
 		vuln := CreateVulnerability(
 			"IIS-FINGERPRINT-003",
 			"X-Powered-By Header Information Disclosure",
-			"X-Powered-By header'ı teknoloji bilgilerini açığa çıkarıyor",
+			"X-Powered-By header exposes technology information",
 			"LOW",
 			2.6,
 		)
 		vuln.URL = baseURL
 		vuln.Evidence = poweredBy
-		vuln.Remediation = "X-Powered-By header'ını kaldırın"
+		vuln.Remediation = "Remove the X-Powered-By header"
 		vulns = append(vulns, vuln)
 	}
 
-	// X-AspNet-Version header kontrolü
+	// X-AspNet-Version header check
 	aspNetVersion := resp.GetHeader("X-AspNet-Version")
 	if aspNetVersion != "" {
 		info = append(info, CreateInformation("aspnet_version", "ASP.NET Version",
-			"ASP.NET versiyon bilgisi", aspNetVersion))
+			"ASP.NET version information", aspNetVersion))
 
 		vuln := CreateVulnerability(
 			"IIS-FINGERPRINT-004",
 			"ASP.NET Version Information Disclosure",
-			"ASP.NET versiyon bilgisi açığa çıkıyor",
+			"ASP.NET version information is being exposed",
 			"LOW",
 			2.6,
 		)
 		vuln.URL = baseURL
 		vuln.Evidence = aspNetVersion
-		vuln.Remediation = "ASP.NET version header'ını gizleyin"
+		vuln.Remediation = "Hide the ASP.NET version header"
 		vulns = append(vulns, vuln)
 	}
 
 	return info, vulns
 }
 
-// analyzeVersionPatterns IIS version pattern'larını analiz eder
+// analyzeVersionPatterns analyzes IIS version patterns
 func (f *FingerprintModule) analyzeVersionPatterns(client *http.Client, baseURL string) ([]Information, []Vulnerability) {
 	var info []Information
 	var vulns []Vulnerability
 
-	// 404 error page analizi
+	// 404 error page analysis
 	resp, err := client.Get(baseURL + "/nonexistent-page-" + fmt.Sprintf("%d", f.startTime.Unix()))
 	if err == nil && resp.StatusCode == 404 {
 		f.IncrementRequests()
 
-		// IIS error page pattern'ları
+		// IIS error page patterns
 		patterns := map[string]string{
 			"IIS 6.0":  `HTTP Error 404 - File or directory not found`,
 			"IIS 7.0":  `HTTP Error 404.0 - Not Found`,
@@ -190,7 +190,7 @@ func (f *FingerprintModule) analyzeVersionPatterns(client *http.Client, baseURL 
 		for version, pattern := range patterns {
 			if matched, _ := regexp.MatchString(pattern, resp.Body); matched {
 				info = append(info, CreateInformation("version_pattern", "IIS Version (Pattern)",
-					"Error page pattern'ından tespit edilen versiyon", version))
+					"Version detected from error page pattern", version))
 				break
 			}
 		}
@@ -199,12 +199,12 @@ func (f *FingerprintModule) analyzeVersionPatterns(client *http.Client, baseURL 
 	return info, vulns
 }
 
-// detectHiddenModules gizli IIS modüllerini tespit eder
+// detectHiddenModules detects hidden IIS modules
 func (f *FingerprintModule) detectHiddenModules(client *http.Client, baseURL string) ([]Information, []Vulnerability) {
 	var info []Information
 	var vulns []Vulnerability
 
-	// Yaygın IIS modül path'leri
+	// Common IIS module paths
 	modulePaths := []string{
 		"/iisadmin/",
 		"/scripts/",
@@ -225,20 +225,20 @@ func (f *FingerprintModule) detectHiddenModules(client *http.Client, baseURL str
 
 		if resp.StatusCode != 404 {
 			info = append(info, CreateInformation("hidden_module", "Hidden IIS Module",
-				"Erişilebilir IIS modülü tespit edildi", path))
+				"Accessible IIS module detected", path))
 
 			if resp.StatusCode == 200 || resp.StatusCode == 403 {
 				vuln := CreateVulnerability(
 					"IIS-FINGERPRINT-005",
 					"Accessible IIS Administrative Path",
-					fmt.Sprintf("IIS yönetim path'i erişilebilir: %s", path),
+					fmt.Sprintf("IIS administrative path accessible: %s", path),
 					"MEDIUM",
 					4.3,
 				)
 				vuln.URL = baseURL + path
 				vuln.Method = "GET"
 				vuln.Evidence = fmt.Sprintf("Status: %d", resp.StatusCode)
-				vuln.Remediation = "Gereksiz IIS modüllerini devre dışı bırakın"
+				vuln.Remediation = "Disable unnecessary IIS modules"
 				vulns = append(vulns, vuln)
 			}
 		}
@@ -247,12 +247,12 @@ func (f *FingerprintModule) detectHiddenModules(client *http.Client, baseURL str
 	return info, vulns
 }
 
-// enumerateISAPIExtensions ISAPI extension'ları enumerate eder
+// enumerateISAPIExtensions enumerates ISAPI extensions
 func (f *FingerprintModule) enumerateISAPIExtensions(client *http.Client, baseURL string) ([]Information, []Vulnerability) {
 	var info []Information
 	var vulns []Vulnerability
 
-	// Yaygın ISAPI extension'ları
+	// Common ISAPI extensions
 	extensions := []string{
 		".asp", ".aspx", ".asa", ".cer", ".cdx", ".htr", ".ida", ".idq",
 		".idc", ".shtm", ".shtml", ".stm", ".printer", ".htw", ".dll",
@@ -266,26 +266,26 @@ func (f *FingerprintModule) enumerateISAPIExtensions(client *http.Client, baseUR
 		}
 		f.IncrementRequests()
 
-		// 404 dışındaki yanıtlar ilginç
+		// Responses other than 404 are interesting
 		if resp.StatusCode != 404 {
 			info = append(info, CreateInformation("isapi_extension", "ISAPI Extension",
-				"Aktif ISAPI extension tespit edildi", ext))
+				"Active ISAPI extension detected", ext))
 
-			// Bazı extension'lar güvenlik riski oluşturabilir
+			// Some extensions can pose security risks
 			dangerousExts := []string{".htr", ".ida", ".idq", ".idc", ".printer", ".htw"}
 			for _, dangerous := range dangerousExts {
 				if ext == dangerous {
 					vuln := CreateVulnerability(
 						"IIS-FINGERPRINT-006",
 						"Dangerous ISAPI Extension Enabled",
-						fmt.Sprintf("Tehlikeli ISAPI extension aktif: %s", ext),
+						fmt.Sprintf("Dangerous ISAPI extension active: %s", ext),
 						"HIGH",
 						7.5,
 					)
 					vuln.URL = testURL
 					vuln.Method = "GET"
 					vuln.Evidence = fmt.Sprintf("Status: %d", resp.StatusCode)
-					vuln.Remediation = "Gereksiz ISAPI extension'ları devre dışı bırakın"
+					vuln.Remediation = "Disable unnecessary ISAPI extensions"
 					vulns = append(vulns, vuln)
 					break
 				}
@@ -296,12 +296,12 @@ func (f *FingerprintModule) enumerateISAPIExtensions(client *http.Client, baseUR
 	return info, vulns
 }
 
-// detectETWLeaks ETW leak'lerini tespit eder
+// detectETWLeaks detects ETW leaks
 func (f *FingerprintModule) detectETWLeaks(client *http.Client, baseURL string) ([]Information, []Vulnerability) {
 	var info []Information
 	var vulns []Vulnerability
 
-	// ETW trace bilgilerini tetikleyebilecek istekler
+	// Requests that can trigger ETW trace information
 	etwTriggers := []string{
 		"/?debug=true",
 		"/?trace=true",
@@ -316,7 +316,7 @@ func (f *FingerprintModule) detectETWLeaks(client *http.Client, baseURL string) 
 		}
 		f.IncrementRequests()
 
-		// ETW leak pattern'ları
+		// ETW leak patterns
 		etwPatterns := []string{
 			"System.Diagnostics.Eventing",
 			"EventSource",
@@ -330,14 +330,14 @@ func (f *FingerprintModule) detectETWLeaks(client *http.Client, baseURL string) 
 				vuln := CreateVulnerability(
 					"IIS-FINGERPRINT-007",
 					"ETW (Event Tracing for Windows) Information Leak",
-					"ETW trace bilgileri sızdırılıyor",
+					"ETW trace information is being leaked",
 					"MEDIUM",
 					5.3,
 				)
 				vuln.URL = baseURL + trigger
 				vuln.Method = "GET"
 				vuln.Evidence = pattern
-				vuln.Remediation = "Debug ve trace özelliklerini production'da devre dışı bırakın"
+				vuln.Remediation = "Disable debug and trace features in production"
 				vulns = append(vulns, vuln)
 				break
 			}
@@ -347,7 +347,7 @@ func (f *FingerprintModule) detectETWLeaks(client *http.Client, baseURL string) 
 	return info, vulns
 }
 
-// extractIISVersion server header'ından IIS versiyonunu çıkarır
+// extractIISVersion extracts IIS version from server header
 func (f *FingerprintModule) extractIISVersion(serverHeader string) string {
 	re := regexp.MustCompile(`IIS/(\d+\.\d+)`)
 	matches := re.FindStringSubmatch(serverHeader)
@@ -357,7 +357,7 @@ func (f *FingerprintModule) extractIISVersion(serverHeader string) string {
 	return ""
 }
 
-// isVulnerableVersion IIS versiyonunun zafiyet içerip içermediğini kontrol eder
+// isVulnerableVersion checks if IIS version contains vulnerabilities
 func (f *FingerprintModule) isVulnerableVersion(version string) bool {
 	vulnerableVersions := []string{"6.0", "7.0", "7.5", "8.0"}
 	for _, vulnVersion := range vulnerableVersions {
@@ -368,7 +368,7 @@ func (f *FingerprintModule) isVulnerableVersion(version string) bool {
 	return false
 }
 
-// isVerboseServerHeader server header'ının fazla bilgi içerip içermediğini kontrol eder
+// isVerboseServerHeader checks if server header contains too much information
 func (f *FingerprintModule) isVerboseServerHeader(serverHeader string) bool {
 	verboseIndicators := []string{"Microsoft-IIS", "ASP.NET", "Windows", "Server"}
 	count := 0

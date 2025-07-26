@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// HTTPHandlerModule IIS HTTP handler zafiyetlerini tespit eder
+// HTTPHandlerModule detects IIS HTTP handler vulnerabilities
 type HTTPHandlerModule struct {
 	*BaseModule
 	client   *http.Client
@@ -26,7 +26,7 @@ type HTTPHandler struct {
 	TestMethods []string
 }
 
-// NewHTTPHandlerModule yeni HTTP handler modülü oluşturur
+// NewHTTPHandlerModule creates new HTTP handler module
 func NewHTTPHandlerModule(client *http.Client, baseURL string) *HTTPHandlerModule {
 	module := &HTTPHandlerModule{
 		BaseModule: NewBaseModule("IIS HTTP Handlers", "IIS HTTP handler vulnerability detection"),
@@ -37,7 +37,7 @@ func NewHTTPHandlerModule(client *http.Client, baseURL string) *HTTPHandlerModul
 	return module
 }
 
-// initHandlers HTTP handler listesini başlatır
+// initHandlers initializes HTTP handler list
 func (m *HTTPHandlerModule) initHandlers() {
 	m.handlers = []HTTPHandler{
 		// .NET Remoting Services
@@ -219,7 +219,7 @@ func (m *HTTPHandlerModule) initHandlers() {
 	}
 }
 
-// Run HTTP handler taramasını çalıştırır
+// Run executes HTTP handler scan
 func (m *HTTPHandlerModule) Run(client *http.Client) (*ModuleResult, error) {
 	m.Start()
 	defer m.End()
@@ -273,7 +273,7 @@ func (m *HTTPHandlerModule) Run(client *http.Client) (*ModuleResult, error) {
 	return m.CreateResult(status, vulnerabilities, info, nil), nil
 }
 
-// testHandler belirli bir handler'ı test eder
+// testHandler tests a specific handler
 func (m *HTTPHandlerModule) testHandler(handler HTTPHandler) []Vulnerability {
 	var vulnerabilities []Vulnerability
 
@@ -294,7 +294,7 @@ func (m *HTTPHandlerModule) testHandler(handler HTTPHandler) []Vulnerability {
 	return vulnerabilities
 }
 
-// generateTestPaths handler için test path'lerini oluşturur
+// generateTestPaths generates test paths for handler
 func (m *HTTPHandlerModule) generateTestPaths(handler HTTPHandler) []string {
 	var paths []string
 
@@ -328,7 +328,7 @@ func (m *HTTPHandlerModule) generateTestPaths(handler HTTPHandler) []string {
 	return paths
 }
 
-// testHandlerPath belirli bir path'i test eder
+// testHandlerPath tests a specific path
 func (m *HTTPHandlerModule) testHandlerPath(testURL, method string, handler HTTPHandler) *Vulnerability {
 	req, err := http.NewRequest(method, testURL, nil)
 	if err != nil {
@@ -371,7 +371,7 @@ func (m *HTTPHandlerModule) testHandlerPath(testURL, method string, handler HTTP
 	return nil
 }
 
-// enumerateDirectory dizin enumeration yapar
+// enumerateDirectory performs directory enumeration
 func (m *HTTPHandlerModule) enumerateDirectory(directory string) []Vulnerability {
 	var vulnerabilities []Vulnerability
 
@@ -412,7 +412,7 @@ func (m *HTTPHandlerModule) enumerateDirectory(directory string) []Vulnerability
 	return vulnerabilities
 }
 
-// testVulnerableHandlers bilinen zafiyet içeren handler'ları test eder
+// testVulnerableHandlers tests known vulnerable handlers
 func (m *HTTPHandlerModule) testVulnerableHandlers() []Vulnerability {
 	var vulnerabilities []Vulnerability
 
@@ -484,7 +484,7 @@ func (m *HTTPHandlerModule) testVulnerableHandlers() []Vulnerability {
 	return vulnerabilities
 }
 
-// isHandlerExposed handler'ın expose olup olmadığını kontrol eder
+// isHandlerExposed checks if handler is exposed
 func (m *HTTPHandlerModule) isHandlerExposed(resp *http.Response, _ HTTPHandler) bool {
 	// Check status codes
 	if resp.StatusCode == 200 || resp.StatusCode == 500 {
@@ -508,7 +508,7 @@ func (m *HTTPHandlerModule) isHandlerExposed(resp *http.Response, _ HTTPHandler)
 	return false
 }
 
-// hasDirectoryListing directory listing kontrolü
+// hasDirectoryListing checks for directory listing
 func (m *HTTPHandlerModule) hasDirectoryListing(resp *http.Response) bool {
 	contentType := resp.Header.Get("Content-Type")
 	if strings.Contains(contentType, "text/html") {
@@ -519,7 +519,7 @@ func (m *HTTPHandlerModule) hasDirectoryListing(resp *http.Response) bool {
 	return false
 }
 
-// getSeverityFromRisk risk level'dan severity döndürür
+// getSeverityFromRisk returns severity from risk level
 func (m *HTTPHandlerModule) getSeverityFromRisk(riskLevel string) string {
 	switch riskLevel {
 	case "HIGH":
@@ -533,7 +533,7 @@ func (m *HTTPHandlerModule) getSeverityFromRisk(riskLevel string) string {
 	}
 }
 
-// getCVSSFromRisk risk level'dan CVSS skoru döndürür
+// getCVSSFromRisk returns CVSS score from risk level
 func (m *HTTPHandlerModule) getCVSSFromRisk(riskLevel string) float64 {
 	switch riskLevel {
 	case "HIGH":

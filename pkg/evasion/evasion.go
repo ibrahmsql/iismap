@@ -10,21 +10,21 @@ import (
 	"time"
 )
 
-// EvasionTechnique evasion tekniği interface'i
+// EvasionTechnique evasion technique interface
 type EvasionTechnique interface {
 	Apply(input string) string
 	Name() string
 	Description() string
 }
 
-// EvasionEngine evasion motor yapısı
+// EvasionEngine evasion engine structure
 type EvasionEngine struct {
 	techniques []EvasionTechnique
 	userAgents []string
 	proxies    []string
 }
 
-// NewEvasionEngine yeni evasion engine oluşturur
+// NewEvasionEngine creates a new evasion engine
 func NewEvasionEngine() *EvasionEngine {
 	engine := &EvasionEngine{}
 	engine.initTechniques()
@@ -32,7 +32,7 @@ func NewEvasionEngine() *EvasionEngine {
 	return engine
 }
 
-// initTechniques evasion tekniklerini başlatır
+// initTechniques initializes evasion techniques
 func (e *EvasionEngine) initTechniques() {
 	e.techniques = []EvasionTechnique{
 		&URLEncoding{},
@@ -48,7 +48,7 @@ func (e *EvasionEngine) initTechniques() {
 	}
 }
 
-// initUserAgents user agent listesini başlatır
+// initUserAgents initializes user agent list
 func (e *EvasionEngine) initUserAgents() {
 	e.userAgents = []string{
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -64,7 +64,7 @@ func (e *EvasionEngine) initUserAgents() {
 	}
 }
 
-// ApplyRandomEvasion rastgele evasion tekniği uygular
+// ApplyRandomEvasion applies a random evasion technique
 func (e *EvasionEngine) ApplyRandomEvasion(input string) string {
 	if len(e.techniques) == 0 {
 		return input
@@ -74,7 +74,7 @@ func (e *EvasionEngine) ApplyRandomEvasion(input string) string {
 	return technique.Apply(input)
 }
 
-// ApplyMultipleEvasions birden fazla evasion tekniği uygular
+// ApplyMultipleEvasions applies multiple evasion techniques
 func (e *EvasionEngine) ApplyMultipleEvasions(input string, count int) string {
 	result := input
 	usedTechniques := make(map[string]bool)
@@ -90,12 +90,12 @@ func (e *EvasionEngine) ApplyMultipleEvasions(input string, count int) string {
 	return result
 }
 
-// GetRandomUserAgent rastgele user agent döndürür
+// GetRandomUserAgent returns a random user agent
 func (e *EvasionEngine) GetRandomUserAgent() string {
 	return e.userAgents[mathRand.Intn(len(e.userAgents))]
 }
 
-// GetRandomDelay rastgele gecikme döndürür
+// GetRandomDelay returns a random delay
 func (e *EvasionEngine) GetRandomDelay(min, max time.Duration) time.Duration {
 	if max <= min {
 		return min
@@ -103,7 +103,7 @@ func (e *EvasionEngine) GetRandomDelay(min, max time.Duration) time.Duration {
 	return min + time.Duration(mathRand.Int63n(int64(max-min)))
 }
 
-// URLEncoding URL encoding evasion tekniği
+// URLEncoding URL encoding evasion technique
 type URLEncoding struct{}
 
 func (u *URLEncoding) Name() string {
@@ -118,7 +118,7 @@ func (u *URLEncoding) Apply(input string) string {
 	return url.QueryEscape(input)
 }
 
-// DoubleURLEncoding double URL encoding evasion tekniği
+// DoubleURLEncoding double URL encoding evasion technique
 type DoubleURLEncoding struct{}
 
 func (d *DoubleURLEncoding) Name() string {
@@ -134,7 +134,7 @@ func (d *DoubleURLEncoding) Apply(input string) string {
 	return url.QueryEscape(encoded)
 }
 
-// UnicodeEncoding Unicode encoding evasion tekniği
+// UnicodeEncoding Unicode encoding evasion technique
 type UnicodeEncoding struct{}
 
 func (u *UnicodeEncoding) Name() string {
@@ -161,7 +161,7 @@ func (u *UnicodeEncoding) Apply(input string) string {
 	return result
 }
 
-// HTMLEncoding HTML encoding evasion tekniği
+// HTMLEncoding HTML encoding evasion technique
 type HTMLEncoding struct{}
 
 func (h *HTMLEncoding) Name() string {
@@ -195,7 +195,7 @@ func (h *HTMLEncoding) Apply(input string) string {
 	return result
 }
 
-// CaseVariation case variation evasion tekniği
+// CaseVariation case variation evasion technique
 type CaseVariation struct{}
 
 func (c *CaseVariation) Name() string {
@@ -218,7 +218,7 @@ func (c *CaseVariation) Apply(input string) string {
 	return result
 }
 
-// PathFragmentation path fragmentation evasion tekniği
+// PathFragmentation path fragmentation evasion technique
 type PathFragmentation struct{}
 
 func (p *PathFragmentation) Name() string {
@@ -244,7 +244,7 @@ func (p *PathFragmentation) Apply(input string) string {
 	return fragment + input
 }
 
-// ParameterPollution HTTP parameter pollution evasion tekniği
+// ParameterPollution HTTP parameter pollution evasion technique
 type ParameterPollution struct{}
 
 func (p *ParameterPollution) Name() string {
@@ -265,7 +265,7 @@ func (p *ParameterPollution) Apply(input string) string {
 	return input
 }
 
-// VerbTampering HTTP verb tampering evasion tekniği
+// VerbTampering HTTP verb tampering evasion technique
 type VerbTampering struct{}
 
 func (v *VerbTampering) Name() string {
@@ -281,7 +281,7 @@ func (v *VerbTampering) Apply(input string) string {
 	return input
 }
 
-// HeaderObfuscation header obfuscation evasion tekniği
+// HeaderObfuscation header obfuscation evasion technique
 type HeaderObfuscation struct{}
 
 func (h *HeaderObfuscation) Name() string {
@@ -297,7 +297,7 @@ func (h *HeaderObfuscation) Apply(input string) string {
 	return input
 }
 
-// TimingVariation timing variation evasion tekniği
+// TimingVariation timing variation evasion technique
 type TimingVariation struct{}
 
 func (t *TimingVariation) Name() string {
@@ -318,7 +318,7 @@ type RequestFragmentation struct {
 	ChunkSize int
 }
 
-// FragmentRequest HTTP isteğini parçalara böler
+// FragmentRequest fragments HTTP request into chunks
 func (r *RequestFragmentation) FragmentRequest(data []byte) [][]byte {
 	if r.ChunkSize <= 0 {
 		r.ChunkSize = 8
@@ -336,12 +336,12 @@ func (r *RequestFragmentation) FragmentRequest(data []byte) [][]byte {
 	return chunks
 }
 
-// CustomEvasionPayloads özel evasion payload'ları
+// CustomEvasionPayloads custom evasion payloads
 type CustomEvasionPayloads struct {
 	IISSpecific []string
 }
 
-// NewCustomEvasionPayloads yeni custom evasion payloads oluşturur
+// NewCustomEvasionPayloads creates new custom evasion payloads
 func NewCustomEvasionPayloads() *CustomEvasionPayloads {
 	return &CustomEvasionPayloads{
 		IISSpecific: []string{
@@ -370,7 +370,7 @@ func NewCustomEvasionPayloads() *CustomEvasionPayloads {
 	}
 }
 
-// GetRandomIISPayload rastgele IIS payload'ı döndürür
+// GetRandomIISPayload returns random IIS payload
 func (c *CustomEvasionPayloads) GetRandomIISPayload() string {
 	return c.IISSpecific[mathRand.Intn(len(c.IISSpecific))]
 }
@@ -381,7 +381,7 @@ type ProxyRotation struct {
 	CurrentIdx  int
 }
 
-// NewProxyRotation yeni proxy rotation oluşturur
+// NewProxyRotation creates new proxy rotation
 func NewProxyRotation(proxies []string) *ProxyRotation {
 	return &ProxyRotation{
 		Proxies:    proxies,
@@ -389,7 +389,7 @@ func NewProxyRotation(proxies []string) *ProxyRotation {
 	}
 }
 
-// GetNextProxy bir sonraki proxy'yi döndürür
+// GetNextProxy returns the next proxy
 func (p *ProxyRotation) GetNextProxy() string {
 	if len(p.Proxies) == 0 {
 		return ""
@@ -400,7 +400,7 @@ func (p *ProxyRotation) GetNextProxy() string {
 	return proxy
 }
 
-// GetRandomProxy rastgele proxy döndürür
+// GetRandomProxy returns random proxy
 func (p *ProxyRotation) GetRandomProxy() string {
 	if len(p.Proxies) == 0 {
 		return ""
@@ -415,7 +415,7 @@ type SSLPinningBypass struct {
 	CustomCerts     []string
 }
 
-// NewSSLPinningBypass yeni SSL pinning bypass oluşturur
+// NewSSLPinningBypass creates new SSL pinning bypass
 func NewSSLPinningBypass() *SSLPinningBypass {
 	return &SSLPinningBypass{
 		IgnoreSSLErrors: true,
@@ -428,21 +428,21 @@ type SessionManager struct {
 	Sessions map[string]string
 }
 
-// NewSessionManager yeni session manager oluşturur
+// NewSessionManager creates new session manager
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
 		Sessions: make(map[string]string),
 	}
 }
 
-// GenerateRandomSession rastgele session oluşturur
+// GenerateRandomSession creates random session
 func (s *SessionManager) GenerateRandomSession() string {
 	bytes := make([]byte, 16)
 	rand.Read(bytes)
 	return hex.EncodeToString(bytes)
 }
 
-// GetSession session döndürür
+// GetSession returns session
 func (s *SessionManager) GetSession(key string) string {
 	if session, exists := s.Sessions[key]; exists {
 		return session
@@ -453,7 +453,7 @@ func (s *SessionManager) GetSession(key string) string {
 	return session
 }
 
-// AdvancedEvasionConfig gelişmiş evasion konfigürasyonu
+// AdvancedEvasionConfig advanced evasion configuration
 type AdvancedEvasionConfig struct {
 	EnableUserAgentRotation bool
 	EnableProxyRotation     bool
@@ -465,7 +465,7 @@ type AdvancedEvasionConfig struct {
 	MaxRetries              int
 }
 
-// DefaultAdvancedEvasionConfig varsayılan gelişmiş evasion config
+// DefaultAdvancedEvasionConfig default advanced evasion config
 func DefaultAdvancedEvasionConfig() *AdvancedEvasionConfig {
 	return &AdvancedEvasionConfig{
 		EnableUserAgentRotation: true,

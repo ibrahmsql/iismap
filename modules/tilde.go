@@ -10,14 +10,14 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// TildeModule IIS Tilde (~) Character Vulnerability modülü
+// TildeModule IIS Tilde (~) Character Vulnerability module
 type TildeModule struct {
 	*BaseModule
 	config *config.Config
 	logger *logger.Logger
 }
 
-// NewTildeModule yeni tilde modülü oluşturur
+// NewTildeModule creates new tilde module
 func NewTildeModule(cfg *config.Config, log *logger.Logger) Module {
 	return &TildeModule{
 		BaseModule: NewBaseModule("tilde", "IIS Tilde (~) Character Vulnerability Scanner"),
@@ -26,7 +26,7 @@ func NewTildeModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-// Run tilde modülünü çalıştırır
+// Run executes tilde module
 func (t *TildeModule) Run(client *http.Client) (*ModuleResult, error) {
 	t.Start()
 	defer t.End()
@@ -36,50 +36,50 @@ func (t *TildeModule) Run(client *http.Client) (*ModuleResult, error) {
 
 	baseURL := t.config.GetBaseURL()
 
-	// 1. Tilde vulnerability tespiti
-	t.logger.Debug("Tilde vulnerability tespiti yapılıyor...")
+	// 1. Tilde vulnerability detection
+	t.logger.Debug("Detecting tilde vulnerability...")
 	if t.isTildeVulnerable(client, baseURL) {
 		info = append(info, CreateInformation("tilde_vuln", "Tilde Vulnerability",
-			"IIS Tilde (~) zafiyeti tespit edildi", "VULNERABLE"))
+			"IIS Tilde (~) vulnerability detected", "VULNERABLE"))
 
 		// 2. Short filename enumeration
-		t.logger.Debug("Short filename enumeration yapılıyor...")
+		t.logger.Debug("Performing short filename enumeration...")
 		filenames := t.enumerateShortFilenames(client, baseURL)
 		for _, filename := range filenames {
 			info = append(info, CreateInformation("short_filename", "Short Filename",
-				"8.3 format dosya adı tespit edildi", filename))
+				"8.3 format filename detected", filename))
 		}
 
 		// 3. Directory enumeration
-		t.logger.Debug("Directory enumeration yapılıyor...")
+		t.logger.Debug("Performing directory enumeration...")
 		directories := t.enumerateDirectories(client, baseURL)
 		for _, dir := range directories {
 			info = append(info, CreateInformation("short_directory", "Short Directory",
-				"8.3 format dizin adı tespit edildi", dir))
+				"8.3 format directory name detected", dir))
 		}
 
 		// 4. Multiple encoding bypass
-		t.logger.Debug("Multiple encoding bypass test ediliyor...")
+		t.logger.Debug("Testing multiple encoding bypass...")
 		encodingVulns := t.testEncodingBypass(client, baseURL)
 		vulnerabilities = append(vulnerabilities, encodingVulns...)
 
 		// 5. Unicode normalization attacks
-		t.logger.Debug("Unicode normalization attacks test ediliyor...")
+		t.logger.Debug("Testing Unicode normalization attacks...")
 		unicodeVulns := t.testUnicodeNormalization(client, baseURL)
 		vulnerabilities = append(vulnerabilities, unicodeVulns...)
 
-		// Ana zafiyet kaydı
+		// Main vulnerability record
 		vuln := CreateVulnerability(
 			"IIS-TILDE-001",
 			"IIS Tilde (~) Character Vulnerability",
-			"IIS sunucusu tilde (~) karakteri zafiyetine sahip. Bu zafiyet 8.3 format dosya/dizin adlarının enumerate edilmesine olanak sağlar.",
+			"IIS server has tilde (~) character vulnerability. This vulnerability allows enumeration of 8.3 format file/directory names.",
 			"MEDIUM",
 			5.3,
 		)
 		vuln.URL = baseURL
 		vuln.Method = "GET"
-		vuln.Evidence = "Tilde enumeration başarılı"
-		vuln.Remediation = "IIS'de 8.3 dosya adı oluşturmayı devre dışı bırakın"
+		vuln.Evidence = "Tilde enumeration successful"
+		vuln.Remediation = "Disable 8.3 filename creation in IIS"
 		vuln.References = []string{
 			"https://www.exploit-db.com/exploits/19525",
 			"https://soroush.secproject.com/blog/2014/07/iis-short-file-name-disclosure-is-back-is-your-server-vulnerable/",
@@ -87,15 +87,15 @@ func (t *TildeModule) Run(client *http.Client) (*ModuleResult, error) {
 		vulnerabilities = append(vulnerabilities, vuln)
 	} else {
 		info = append(info, CreateInformation("tilde_vuln", "Tilde Vulnerability",
-			"IIS Tilde (~) zafiyeti tespit edilmedi", "NOT_VULNERABLE"))
+			"IIS Tilde (~) vulnerability not detected", "NOT_VULNERABLE"))
 	}
 
 	return t.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
 
-// isTildeVulnerable tilde zafiyetinin varlığını kontrol eder
+// isTildeVulnerable checks for the presence of tilde vulnerability
 func (t *TildeModule) isTildeVulnerable(client *http.Client, baseURL string) bool {
-	// Test path'leri
+	// Test paths
 	testPaths := []string{
 		"/*~1*/",
 		"/a*~1*/",
@@ -111,14 +111,14 @@ func (t *TildeModule) isTildeVulnerable(client *http.Client, baseURL string) boo
 		}
 		t.IncrementRequests()
 
-		// 404 dışındaki yanıtlar zafiyet göstergesi
+		// Responses other than 404 indicate vulnerability
 		if resp.StatusCode != 404 {
-			// Özellikle 400 Bad Request yaygın bir gösterge
+			// Especially 400 Bad Request is a common indicator
 			if resp.StatusCode == 400 || resp.StatusCode == 500 {
 				return true
 			}
 
-			// Response body'de belirli pattern'lar
+			// Specific patterns in response body
 			if strings.Contains(resp.Body, "The request filtering module is configured") ||
 				strings.Contains(resp.Body, "Bad Request") ||
 				strings.Contains(resp.Body, "Invalid URL") {
@@ -130,17 +130,17 @@ func (t *TildeModule) isTildeVulnerable(client *http.Client, baseURL string) boo
 	return false
 }
 
-// enumerateShortFilenames kısa dosya adlarını enumerate eder
+// enumerateShortFilenames enumerates short filenames
 func (t *TildeModule) enumerateShortFilenames(client *http.Client, baseURL string) []string {
 	var filenames []string
 
-	// Yaygın dosya uzantıları
+	// Common file extensions
 	extensions := []string{"asp", "aspx", "htm", "html", "txt", "xml", "config", "inc"}
 
-	// Alfabe karakterleri ile brute force (fast modda sınırlı)
+	// Brute force with alphabet characters (limited in fast mode)
 	maxChars := 'z'
 	if t.config.Fast {
-		maxChars = 'f' // Fast modda sadece a-f karakterleri
+		maxChars = 'f' // Only a-f characters in fast mode
 	}
 
 	for _, ext := range extensions {
@@ -154,21 +154,21 @@ func (t *TildeModule) enumerateShortFilenames(client *http.Client, baseURL strin
 				}
 				t.IncrementRequests()
 
-				// Başarılı yanıt kısa dosya adının varlığını gösterir
+				// Successful response indicates presence of short filename
 				if resp.StatusCode == 200 || resp.StatusCode == 403 || resp.StatusCode == 500 {
 					filename := fmt.Sprintf("%c%c~1.%s", i, j, ext)
 					filenames = append(filenames, filename)
 
-					// Tam dosya adını bulmaya çalış
+					// Try to find full filename
 					fullName := t.findFullFilename(client, baseURL, filename, ext)
 					if fullName != "" {
 						filenames = append(filenames, fullName)
 					}
 				}
 
-				// Rate limiting için delay (sadece stealth modda)
+				// Delay for rate limiting (only in stealth mode)
 				if t.config.Stealth && t.config.Delay > 0 {
-					time.Sleep(t.config.Delay / 20) // Çok kısa delay
+					time.Sleep(t.config.Delay / 20) // Very short delay
 				}
 			}
 		}
@@ -177,14 +177,14 @@ func (t *TildeModule) enumerateShortFilenames(client *http.Client, baseURL strin
 	return filenames
 }
 
-// enumerateDirectories kısa dizin adlarını enumerate eder
+// enumerateDirectories enumerates short directory names
 func (t *TildeModule) enumerateDirectories(client *http.Client, baseURL string) []string {
 	var directories []string
 
 	// Alfabe karakterleri ile brute force (fast modda sınırlı)
 	maxChars := 'z'
 	if t.config.Fast {
-		maxChars = 'f' // Fast modda sadece a-f karakterleri
+		maxChars = 'f' // Only a-f characters in fast mode
 	}
 
 	for i := 'a'; i <= maxChars; i++ {
@@ -197,12 +197,12 @@ func (t *TildeModule) enumerateDirectories(client *http.Client, baseURL string) 
 			}
 			t.IncrementRequests()
 
-			// Başarılı yanıt kısa dizin adının varlığını gösterir
+			// Successful response indicates presence of short directory name
 			if resp.StatusCode == 200 || resp.StatusCode == 403 || resp.StatusCode == 500 {
 				dirname := fmt.Sprintf("%c%c~1", i, j)
 				directories = append(directories, dirname)
 
-				// Tam dizin adını bulmaya çalış
+				// Try to find full directory name
 				fullName := t.findFullDirectoryname(client, baseURL, dirname)
 				if fullName != "" {
 					directories = append(directories, fullName)
@@ -214,15 +214,15 @@ func (t *TildeModule) enumerateDirectories(client *http.Client, baseURL string) 
 	return directories
 }
 
-// findFullFilename kısa dosya adından tam dosya adını bulmaya çalışır
+// findFullFilename tries to find full filename from short filename
 func (t *TildeModule) findFullFilename(client *http.Client, baseURL, shortName, ext string) string {
-	// Yaygın dosya adı pattern'ları
+	// Common filename patterns
 	commonNames := []string{
 		"default", "index", "home", "main", "admin", "login", "config",
 		"web", "site", "page", "test", "demo", "sample", "backup",
 	}
 
-	prefix := shortName[:2] // İlk iki karakter
+	prefix := shortName[:2] // First two characters
 
 	for _, name := range commonNames {
 		if strings.HasPrefix(strings.ToLower(name), strings.ToLower(prefix)) {
@@ -243,16 +243,16 @@ func (t *TildeModule) findFullFilename(client *http.Client, baseURL, shortName, 
 	return ""
 }
 
-// findFullDirectoryname kısa dizin adından tam dizin adını bulmaya çalışır
+// findFullDirectoryname tries to find full directory name from short directory name
 func (t *TildeModule) findFullDirectoryname(client *http.Client, baseURL, shortName string) string {
-	// Yaygın dizin adı pattern'ları
+	// Common directory name patterns
 	commonDirs := []string{
 		"admin", "administrator", "aspnet_client", "bin", "config", "content",
 		"css", "data", "files", "images", "includes", "js", "scripts", "temp",
 		"upload", "uploads", "user", "users", "web", "website",
 	}
 
-	prefix := shortName[:2] // İlk iki karakter
+	prefix := shortName[:2] // First two characters
 
 	for _, dir := range commonDirs {
 		if strings.HasPrefix(strings.ToLower(dir), strings.ToLower(prefix)) {
@@ -273,11 +273,11 @@ func (t *TildeModule) findFullDirectoryname(client *http.Client, baseURL, shortN
 	return ""
 }
 
-// testEncodingBypass multiple encoding bypass tekniklerini test eder
+// testEncodingBypass tests multiple encoding bypass techniques
 func (t *TildeModule) testEncodingBypass(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Encoding bypass teknikleri
+	// Encoding bypass techniques
 	encodings := []struct {
 		name    string
 		payload string
@@ -300,7 +300,7 @@ func (t *TildeModule) testEncodingBypass(client *http.Client, baseURL string) []
 			vuln := CreateVulnerability(
 				"IIS-TILDE-002",
 				"Tilde Enumeration Encoding Bypass",
-				fmt.Sprintf("Tilde enumeration %s ile bypass edilebiliyor", encoding.name),
+				fmt.Sprintf("Tilde enumeration can be bypassed with %s", encoding.name),
 				"MEDIUM",
 				5.3,
 			)
@@ -308,7 +308,7 @@ func (t *TildeModule) testEncodingBypass(client *http.Client, baseURL string) []
 			vuln.Method = "GET"
 			vuln.Payload = encoding.payload
 			vuln.Evidence = fmt.Sprintf("Status: %d", resp.StatusCode)
-			vuln.Remediation = "Input validation ve encoding kontrollerini güçlendirin"
+			vuln.Remediation = "Strengthen input validation and encoding controls"
 			vulns = append(vulns, vuln)
 		}
 	}
@@ -316,13 +316,13 @@ func (t *TildeModule) testEncodingBypass(client *http.Client, baseURL string) []
 	return vulns
 }
 
-// testUnicodeNormalization unicode normalization attack'larını test eder
+// testUnicodeNormalization tests unicode normalization attacks
 func (t *TildeModule) testUnicodeNormalization(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Unicode normalization payloadları
+	// Unicode normalization payloads
 	unicodePayloads := []string{
-		"/\u002a\u007e1\u002a/",      // Unicode asterisk ve tilde
+		"/\u002a\u007e1\u002a/",      // Unicode asterisk and tilde
 		"/\uff0a\uff5e1\uff0a/",      // Fullwidth characters
 		"/\u2217\u223c1\u2217/",      // Mathematical symbols
 		"/\u066d\u0653\u0031\u066d/", // Arabic characters
@@ -339,7 +339,7 @@ func (t *TildeModule) testUnicodeNormalization(client *http.Client, baseURL stri
 			vuln := CreateVulnerability(
 				"IIS-TILDE-003",
 				"Unicode Normalization Bypass",
-				"Tilde enumeration Unicode normalization ile bypass edilebiliyor",
+				"Tilde enumeration can be bypassed with Unicode normalization",
 				"MEDIUM",
 				5.3,
 			)
@@ -347,7 +347,7 @@ func (t *TildeModule) testUnicodeNormalization(client *http.Client, baseURL stri
 			vuln.Method = "GET"
 			vuln.Payload = payload
 			vuln.Evidence = fmt.Sprintf("Status: %d", resp.StatusCode)
-			vuln.Remediation = "Unicode normalization kontrollerini implement edin"
+			vuln.Remediation = "Implement Unicode normalization controls"
 			vulns = append(vulns, vuln)
 		}
 	}

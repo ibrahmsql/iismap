@@ -11,14 +11,14 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// WindowsDetectionModule Windows Server tespit modülü
+// WindowsDetectionModule Windows Server detection module
 type WindowsDetectionModule struct {
 	*BaseModule
 	config *config.Config
 	logger *logger.Logger
 }
 
-// NewWindowsDetectionModule yeni Windows detection modülü oluşturur
+// NewWindowsDetectionModule creates new Windows detection module
 func NewWindowsDetectionModule(cfg *config.Config, log *logger.Logger) Module {
 	return &WindowsDetectionModule{
 		BaseModule: NewBaseModule("windows_detection", "Windows Server Detection & Validation"),
@@ -27,7 +27,7 @@ func NewWindowsDetectionModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-// Run Windows detection modülünü çalıştırır
+// Run executes Windows detection module
 func (w *WindowsDetectionModule) Run(client *http.Client) (*ModuleResult, error) {
 	w.Start()
 	defer w.End()
@@ -37,64 +37,64 @@ func (w *WindowsDetectionModule) Run(client *http.Client) (*ModuleResult, error)
 
 	baseURL := w.config.GetBaseURL()
 
-	// 1. Server Header Kontrolü
-	w.logger.Debug("Server header ile Windows tespiti yapılıyor...")
+	// 1. Server Header Check
+	w.logger.Debug("Performing Windows detection via server header...")
 	serverInfo := w.detectWindowsFromHeaders(client, baseURL)
 	info = append(info, serverInfo...)
 
-	// 2. IIS Specific Response Pattern'ları
-	w.logger.Debug("IIS response pattern'ları kontrol ediliyor...")
+	// 2. IIS Specific Response Patterns
+	w.logger.Debug("Checking IIS response patterns...")
 	iisInfo := w.detectIISPatterns(client, baseURL)
 	info = append(info, iisInfo...)
 
 	// 3. Windows-specific File/Directory Patterns
-	w.logger.Debug("Windows-specific path'ler kontrol ediliyor...")
+	w.logger.Debug("Checking Windows-specific paths...")
 	pathInfo := w.detectWindowsPaths(client, baseURL)
 	info = append(info, pathInfo...)
 
 	// 4. ASP.NET Detection
-	w.logger.Debug("ASP.NET tespiti yapılıyor...")
+	w.logger.Debug("Performing ASP.NET detection...")
 	aspnetInfo := w.detectASPNET(client, baseURL)
 	info = append(info, aspnetInfo...)
 
 	// 5. Windows Server Version Detection
-	w.logger.Debug("Windows Server versiyonu tespit ediliyor...")
+	w.logger.Debug("Detecting Windows Server version...")
 	versionInfo := w.detectWindowsVersion(client, baseURL)
 	info = append(info, versionInfo...)
 
 	// 6. Network Level Detection
-	w.logger.Debug("Network seviyesinde Windows tespiti yapılıyor...")
+	w.logger.Debug("Performing network-level Windows detection...")
 	networkInfo := w.detectWindowsFromNetwork()
 	info = append(info, networkInfo...)
 
-	// Windows Server kontrolü
+	// Windows Server check
 	isWindows := w.isWindowsServer(info)
 	if !isWindows {
 		vuln := CreateVulnerability(
 			"WIN-DETECT-001",
 			"Non-Windows Server Detected",
-			"Hedef sistem Windows Server değil. IIS sadece Windows Server üzerinde çalışır.",
+			"Target system is not Windows Server. IIS only runs on Windows Server.",
 			"INFO",
 			0.0,
 		)
 		vuln.URL = baseURL
-		vuln.Evidence = "Windows Server tespit edilmedi"
-		vuln.Remediation = "IIS taraması için Windows Server gereklidir"
+		vuln.Evidence = "Windows Server not detected"
+		vuln.Remediation = "Windows Server is required for IIS scanning"
 		vulnerabilities = append(vulnerabilities, vuln)
 
 		info = append(info, CreateInformation("os_detection", "Operating System",
-			"Tespit edilen işletim sistemi", "Non-Windows"))
+			"Detected operating system", "Non-Windows"))
 	} else {
 		info = append(info, CreateInformation("os_detection", "Operating System",
-			"Tespit edilen işletim sistemi", "Windows Server"))
+			"Detected operating system", "Windows Server"))
 
-		w.logger.Success("Windows Server tespit edildi, IIS taraması devam edebilir")
+		w.logger.Success("Windows Server detected, IIS scanning can continue")
 	}
 
 	return w.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
 
-// detectWindowsFromHeaders server header'larından Windows tespiti
+// detectWindowsFromHeaders detects Windows from server headers
 func (w *WindowsDetectionModule) detectWindowsFromHeaders(client *http.Client, baseURL string) []Information {
 	var info []Information
 
@@ -104,13 +104,13 @@ func (w *WindowsDetectionModule) detectWindowsFromHeaders(client *http.Client, b
 	}
 	w.IncrementRequests()
 
-	// Server header kontrolü
+	// Server header check
 	serverHeader := resp.GetHeader("Server")
 	if serverHeader != "" {
 		info = append(info, CreateInformation("server_header", "Server Header",
-			"HTTP Server header bilgisi", serverHeader))
+			"HTTP Server header information", serverHeader))
 
-		// Windows/IIS göstergeleri
+		// Windows/IIS indicators
 		windowsIndicators := []string{
 			"Microsoft-IIS",
 			"Microsoft-HTTPAPI",
@@ -121,7 +121,7 @@ func (w *WindowsDetectionModule) detectWindowsFromHeaders(client *http.Client, b
 		for _, indicator := range windowsIndicators {
 			if strings.Contains(serverHeader, indicator) {
 				info = append(info, CreateInformation("windows_indicator", "Windows Indicator",
-					fmt.Sprintf("Windows göstergesi tespit edildi: %s", indicator), indicator))
+					fmt.Sprintf("Windows indicator detected: %s", indicator), indicator))
 			}
 		}
 	}
@@ -130,29 +130,29 @@ func (w *WindowsDetectionModule) detectWindowsFromHeaders(client *http.Client, b
 	poweredBy := resp.GetHeader("X-Powered-By")
 	if poweredBy != "" && strings.Contains(poweredBy, "ASP.NET") {
 		info = append(info, CreateInformation("aspnet_header", "ASP.NET Detection",
-			"X-Powered-By header'ında ASP.NET tespit edildi", poweredBy))
+			"ASP.NET detected in X-Powered-By header", poweredBy))
 	}
 
 	// X-AspNet-Version header
 	aspNetVersion := resp.GetHeader("X-AspNet-Version")
 	if aspNetVersion != "" {
 		info = append(info, CreateInformation("aspnet_version", "ASP.NET Version",
-			"ASP.NET versiyon bilgisi", aspNetVersion))
+			"ASP.NET version information", aspNetVersion))
 	}
 
 	return info
 }
 
-// detectIISPatterns IIS-specific pattern'ları tespit eder
+// detectIISPatterns detects IIS-specific patterns
 func (w *WindowsDetectionModule) detectIISPatterns(client *http.Client, baseURL string) []Information {
 	var info []Information
 
-	// 404 error page testi
+	// 404 error page test
 	resp, err := client.Get(baseURL + "/nonexistent-test-page-" + fmt.Sprintf("%d", time.Now().Unix()))
 	if err == nil && resp.StatusCode == 404 {
 		w.IncrementRequests()
 
-		// IIS error page pattern'ları
+		// IIS error page patterns
 		iisPatterns := map[string]string{
 			"IIS 6.0":  `HTTP Error 404 - File or directory not found`,
 			"IIS 7.0+": `HTTP Error 404.0 - Not Found`,
@@ -162,7 +162,7 @@ func (w *WindowsDetectionModule) detectIISPatterns(client *http.Client, baseURL 
 		for version, pattern := range iisPatterns {
 			if strings.Contains(resp.Body, pattern) {
 				info = append(info, CreateInformation("iis_pattern", "IIS Pattern Detection",
-					fmt.Sprintf("IIS pattern tespit edildi: %s", version), pattern))
+					fmt.Sprintf("IIS pattern detected: %s", version), pattern))
 			}
 		}
 
@@ -177,7 +177,7 @@ func (w *WindowsDetectionModule) detectIISPatterns(client *http.Client, baseURL 
 		for _, pattern := range windowsErrorPatterns {
 			if strings.Contains(resp.Body, pattern) {
 				info = append(info, CreateInformation("windows_error_pattern", "Windows Error Pattern",
-					"Windows error pattern tespit edildi", pattern))
+					"Windows error pattern detected", pattern))
 			}
 		}
 	}
@@ -185,7 +185,7 @@ func (w *WindowsDetectionModule) detectIISPatterns(client *http.Client, baseURL 
 	return info
 }
 
-// detectWindowsPaths Windows-specific path'leri kontrol eder
+// detectWindowsPaths checks Windows-specific paths
 func (w *WindowsDetectionModule) detectWindowsPaths(client *http.Client, baseURL string) []Information {
 	var info []Information
 
@@ -213,7 +213,7 @@ func (w *WindowsDetectionModule) detectWindowsPaths(client *http.Client, baseURL
 
 		if resp.StatusCode == 200 || resp.StatusCode == 403 {
 			info = append(info, CreateInformation("windows_path", "Windows-specific Path",
-				fmt.Sprintf("Windows-specific path erişilebilir: %s", path),
+				fmt.Sprintf("Windows-specific path accessible: %s", path),
 				fmt.Sprintf("Status: %d", resp.StatusCode)))
 		}
 	}
@@ -221,7 +221,7 @@ func (w *WindowsDetectionModule) detectWindowsPaths(client *http.Client, baseURL
 	return info
 }
 
-// detectASPNET ASP.NET tespiti yapar
+// detectASPNET performs ASP.NET detection
 func (w *WindowsDetectionModule) detectASPNET(client *http.Client, baseURL string) []Information {
 	var info []Information
 
@@ -236,7 +236,7 @@ func (w *WindowsDetectionModule) detectASPNET(client *http.Client, baseURL strin
 		}
 		w.IncrementRequests()
 
-		// 404 dışındaki yanıtlar ASP.NET varlığını gösterebilir
+		// Responses other than 404 may indicate ASP.NET presence
 		if resp.StatusCode != 404 {
 			info = append(info, CreateInformation("aspnet_extension", "ASP.NET Extension",
 				fmt.Sprintf("ASP.NET extension response: %s", ext),
@@ -244,26 +244,26 @@ func (w *WindowsDetectionModule) detectASPNET(client *http.Client, baseURL strin
 		}
 	}
 
-	// ViewState kontrolü
+	// ViewState check
 	resp, err := client.Get(baseURL)
 	if err == nil && resp.StatusCode == 200 {
 		w.IncrementRequests()
 
 		if strings.Contains(resp.Body, "__VIEWSTATE") {
 			info = append(info, CreateInformation("viewstate", "ASP.NET ViewState",
-				"ASP.NET ViewState tespit edildi", "__VIEWSTATE found"))
+				"ASP.NET ViewState detected", "__VIEWSTATE found"))
 		}
 
 		if strings.Contains(resp.Body, "__EVENTVALIDATION") {
 			info = append(info, CreateInformation("eventvalidation", "ASP.NET EventValidation",
-				"ASP.NET EventValidation tespit edildi", "__EVENTVALIDATION found"))
+				"ASP.NET EventValidation detected", "__EVENTVALIDATION found"))
 		}
 	}
 
 	return info
 }
 
-// detectWindowsVersion Windows Server versiyonunu tespit eder
+// detectWindowsVersion detects Windows Server version
 func (w *WindowsDetectionModule) detectWindowsVersion(client *http.Client, baseURL string) []Information {
 	var info []Information
 
@@ -277,7 +277,7 @@ func (w *WindowsDetectionModule) detectWindowsVersion(client *http.Client, baseU
 		"10.0": "Windows Server 2016/2019/2022",
 	}
 
-	// Server header'dan IIS versiyonu çıkar
+	// Extract IIS version from server header
 	resp, err := client.Head(baseURL)
 	if err == nil {
 		w.IncrementRequests()
@@ -286,9 +286,9 @@ func (w *WindowsDetectionModule) detectWindowsVersion(client *http.Client, baseU
 		for iisVersion, windowsVersion := range iisVersionMap {
 			if strings.Contains(serverHeader, "IIS/"+iisVersion) {
 				info = append(info, CreateInformation("windows_version", "Windows Server Version",
-					"Tespit edilen Windows Server versiyonu", windowsVersion))
+					"Detected Windows Server version", windowsVersion))
 				info = append(info, CreateInformation("iis_version", "IIS Version",
-					"Tespit edilen IIS versiyonu", iisVersion))
+					"Detected IIS version", iisVersion))
 				break
 			}
 		}
@@ -297,13 +297,13 @@ func (w *WindowsDetectionModule) detectWindowsVersion(client *http.Client, baseU
 	return info
 }
 
-// detectWindowsFromNetwork network seviyesinde Windows tespiti
+// detectWindowsFromNetwork performs network-level Windows detection
 func (w *WindowsDetectionModule) detectWindowsFromNetwork() []Information {
 	var info []Information
 
 	host := w.config.ParsedURL.Host
 
-	// Port tarama (yaygın Windows portları)
+	// Port scanning (common Windows ports)
 	windowsPorts := []int{135, 139, 445, 1433, 3389, 5985, 5986}
 
 	for _, port := range windowsPorts {
@@ -311,7 +311,7 @@ func (w *WindowsDetectionModule) detectWindowsFromNetwork() []Information {
 		if err == nil {
 			conn.Close()
 			info = append(info, CreateInformation("windows_port", "Windows Service Port",
-				fmt.Sprintf("Windows service portu açık: %d", port),
+				fmt.Sprintf("Windows service port open: %d", port),
 				w.getPortDescription(port)))
 		}
 	}
@@ -319,7 +319,7 @@ func (w *WindowsDetectionModule) detectWindowsFromNetwork() []Information {
 	return info
 }
 
-// getPortDescription port açıklamasını döndürür
+// getPortDescription returns port description
 func (w *WindowsDetectionModule) getPortDescription(port int) string {
 	descriptions := map[int]string{
 		135:  "RPC Endpoint Mapper",
@@ -337,7 +337,7 @@ func (w *WindowsDetectionModule) getPortDescription(port int) string {
 	return "Unknown Windows Service"
 }
 
-// isWindowsServer bilgilere göre Windows Server olup olmadığını kontrol eder
+// isWindowsServer checks if it's Windows Server based on information
 func (w *WindowsDetectionModule) isWindowsServer(info []Information) bool {
 	windowsIndicators := 0
 
@@ -356,6 +356,6 @@ func (w *WindowsDetectionModule) isWindowsServer(info []Information) bool {
 		}
 	}
 
-	// En az 2 Windows göstergesi varsa Windows Server kabul et
+	// Accept as Windows Server if at least 2 Windows indicators are present
 	return windowsIndicators >= 2
 }

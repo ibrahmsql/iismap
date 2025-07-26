@@ -11,14 +11,14 @@ import (
 	"github.com/ibrahmsql/iismap/internal/config"
 )
 
-// Client HTTP istemci yapısı
+// Client HTTP client structure
 type Client struct {
 	client  *http.Client
 	config  *config.Config
 	headers map[string]string
 }
 
-// Response HTTP yanıt yapısı
+// Response HTTP response structure
 type Response struct {
 	StatusCode int
 	Headers    map[string][]string
@@ -27,21 +27,21 @@ type Response struct {
 	Duration   time.Duration
 }
 
-// NewClient yeni HTTP istemci oluşturur
+// NewClient creates new HTTP client
 func NewClient(cfg *config.Config) *Client {
-	// Transport konfigürasyonu
+	// Transport configuration
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // SSL doğrulamasını atla
+			InsecureSkipVerify: true, // Skip SSL verification
 		},
 		MaxIdleConns:        200,
 		MaxIdleConnsPerHost: 50,
 		IdleConnTimeout:     10 * time.Second,
-		DisableKeepAlives:   false, // Keep-alive'ı aktif tut
-		DisableCompression:  false, // Compression'ı aktif tut
+		DisableKeepAlives:   false, // Keep keep-alive active
+		DisableCompression:  false, // Keep compression active
 	}
 
-	// Proxy ayarları
+	// Proxy settings
 	if cfg.Proxy != "" {
 		proxyURL, err := url.Parse(cfg.Proxy)
 		if err == nil {
@@ -49,23 +49,23 @@ func NewClient(cfg *config.Config) *Client {
 		}
 	}
 
-	// HTTP istemci
+	// HTTP client
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   cfg.Timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // Redirect'leri takip etme
+			return http.ErrUseLastResponse // Don't follow redirects
 		},
 	}
 
-	// Varsayılan header'lar
+	// Default headers
 	headers := map[string]string{
 		"User-Agent": cfg.UserAgent,
 		"Accept":     "*/*",
 		"Connection": "close",
 	}
 
-	// Özel header'ları ekle
+	// Add custom headers
 	for k, v := range cfg.Headers {
 		headers[k] = v
 	}
@@ -77,59 +77,59 @@ func NewClient(cfg *config.Config) *Client {
 	}
 }
 
-// Get GET isteği gönderir
+// Get sends GET request
 func (c *Client) Get(targetURL string) (*Response, error) {
 	return c.Request("GET", targetURL, "")
 }
 
-// Post POST isteği gönderir
+// Post sends POST request
 func (c *Client) Post(targetURL, body string) (*Response, error) {
 	return c.Request("POST", targetURL, body)
 }
 
-// Head HEAD isteği gönderir
+// Head sends HEAD request
 func (c *Client) Head(targetURL string) (*Response, error) {
 	return c.Request("HEAD", targetURL, "")
 }
 
-// Options OPTIONS isteği gönderir
+// Options sends OPTIONS request
 func (c *Client) Options(targetURL string) (*Response, error) {
 	return c.Request("OPTIONS", targetURL, "")
 }
 
-// Request özel HTTP isteği gönderir
+// Request sends custom HTTP request
 func (c *Client) Request(method, targetURL, body string) (*Response, error) {
 	start := time.Now()
 
-	// İstek oluştur
+	// Create request
 	req, err := http.NewRequest(method, targetURL, strings.NewReader(body))
 	if err != nil {
-		return nil, fmt.Errorf("istek oluşturma hatası: %v", err)
+		return nil, fmt.Errorf("request creation error: %v", err)
 	}
 
-	// Header'ları ekle
+	// Add headers
 	for k, v := range c.headers {
 		req.Header.Set(k, v)
 	}
 
-	// Cookie'leri ekle
+	// Add cookies
 	for k, v := range c.config.Cookies {
 		req.AddCookie(&http.Cookie{Name: k, Value: v})
 	}
 
-	// Content-Type ayarla
+	// Set Content-Type
 	if body != "" && req.Header.Get("Content-Type") == "" {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	// İsteği gönder
+	// Send request
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("istek gönderme hatası: %v", err)
+		return nil, fmt.Errorf("request sending error: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// Yanıtı oku
+	// Read response
 	bodyBytes := make([]byte, 1024*1024) // 1MB limit
 	n, _ := resp.Body.Read(bodyBytes)
 	responseBody := string(bodyBytes[:n])
@@ -145,7 +145,7 @@ func (c *Client) Request(method, targetURL, body string) (*Response, error) {
 	}, nil
 }
 
-// GetHeader yanıt header'ını alır
+// GetHeader gets response header
 func (r *Response) GetHeader(name string) string {
 	values := r.Headers[name]
 	if len(values) > 0 {
@@ -154,33 +154,33 @@ func (r *Response) GetHeader(name string) string {
 	return ""
 }
 
-// HasHeader header'ın varlığını kontrol eder
+// HasHeader checks header existence
 func (r *Response) HasHeader(name string) bool {
 	_, exists := r.Headers[name]
 	return exists
 }
 
-// ContainsBody body'de string arar
+// ContainsBody searches string in body
 func (r *Response) ContainsBody(text string) bool {
 	return strings.Contains(strings.ToLower(r.Body), strings.ToLower(text))
 }
 
-// IsSuccess başarılı yanıt kontrolü
+// IsSuccess checks successful response
 func (r *Response) IsSuccess() bool {
 	return r.StatusCode >= 200 && r.StatusCode < 300
 }
 
-// IsRedirect redirect yanıt kontrolü
+// IsRedirect checks redirect response
 func (r *Response) IsRedirect() bool {
 	return r.StatusCode >= 300 && r.StatusCode < 400
 }
 
-// IsClientError client error kontrolü
+// IsClientError checks client error
 func (r *Response) IsClientError() bool {
 	return r.StatusCode >= 400 && r.StatusCode < 500
 }
 
-// IsServerError server error kontrolü
+// IsServerError checks server error
 func (r *Response) IsServerError() bool {
 	return r.StatusCode >= 500
 }

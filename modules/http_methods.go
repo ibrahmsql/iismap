@@ -9,14 +9,14 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// HTTPMethodsModule HTTP metodları test modülü
+// HTTPMethodsModule HTTP methods test module
 type HTTPMethodsModule struct {
 	*BaseModule
 	config *config.Config
 	logger *logger.Logger
 }
 
-// NewHTTPMethodsModule yeni HTTP methods modülü oluşturur
+// NewHTTPMethodsModule creates new HTTP methods module
 func NewHTTPMethodsModule(cfg *config.Config, log *logger.Logger) Module {
 	return &HTTPMethodsModule{
 		BaseModule: NewBaseModule("http_methods", "HTTP Methods Security Testing"),
@@ -25,7 +25,7 @@ func NewHTTPMethodsModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-// Run HTTP methods modülünü çalıştırır
+// Run executes HTTP methods module
 func (h *HTTPMethodsModule) Run(client *http.Client) (*ModuleResult, error) {
 	h.Start()
 	defer h.End()
@@ -36,40 +36,40 @@ func (h *HTTPMethodsModule) Run(client *http.Client) (*ModuleResult, error) {
 	baseURL := h.config.GetBaseURL()
 
 	// 1. HTTP Methods Enumeration
-	h.logger.Debug("HTTP metodları enumerate ediliyor...")
+	h.logger.Debug("Enumerating HTTP methods...")
 	methodsInfo, methodsVulns := h.enumerateHTTPMethods(client, baseURL)
 	info = append(info, methodsInfo...)
 	vulnerabilities = append(vulnerabilities, methodsVulns...)
 
 	// 2. Dangerous Methods Testing
-	h.logger.Debug("Tehlikeli HTTP metodları test ediliyor...")
+	h.logger.Debug("Testing dangerous HTTP methods...")
 	dangerousVulns := h.testDangerousMethods(client, baseURL)
 	vulnerabilities = append(vulnerabilities, dangerousVulns...)
 
 	// 3. WebDAV Methods Testing
-	h.logger.Debug("WebDAV metodları test ediliyor...")
+	h.logger.Debug("Testing WebDAV methods...")
 	webdavVulns := h.testWebDAVMethods(client, baseURL)
 	vulnerabilities = append(vulnerabilities, webdavVulns...)
 
 	// 4. HTTP Method Override Testing
-	h.logger.Debug("HTTP method override test ediliyor...")
+	h.logger.Debug("Testing HTTP method override...")
 	overrideVulns := h.testMethodOverride(client, baseURL)
 	vulnerabilities = append(vulnerabilities, overrideVulns...)
 
 	// 5. TRACE Method XST Testing
-	h.logger.Debug("TRACE method XST test ediliyor...")
+	h.logger.Debug("Testing TRACE method XST...")
 	xstVulns := h.testTraceXST(client, baseURL)
 	vulnerabilities = append(vulnerabilities, xstVulns...)
 
 	return h.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
 
-// enumerateHTTPMethods HTTP metodlarını enumerate eder
+// enumerateHTTPMethods enumerates HTTP methods
 func (h *HTTPMethodsModule) enumerateHTTPMethods(client *http.Client, baseURL string) ([]Information, []Vulnerability) {
 	var info []Information
 	var vulns []Vulnerability
 
-	// Test edilecek HTTP metodları
+	// HTTP methods
 	methods := []string{
 		"GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT",
 		"PATCH", "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK",
@@ -87,7 +87,7 @@ func (h *HTTPMethodsModule) enumerateHTTPMethods(client *http.Client, baseURL st
 		}
 		h.IncrementRequests()
 
-		// Method allowed kontrolü
+		// Method allowed check
 		if h.isMethodAllowed(resp.StatusCode) {
 			allowedMethods = append(allowedMethods, method)
 			info = append(info, CreateInformation("allowed_method", "Allowed HTTP Method",
@@ -98,7 +98,7 @@ func (h *HTTPMethodsModule) enumerateHTTPMethods(client *http.Client, baseURL st
 		}
 	}
 
-	// OPTIONS method ile allowed methods kontrolü
+	// Check allowed methods with OPTIONS method
 	optionsResp, err := client.Options(baseURL)
 	if err == nil {
 		h.IncrementRequests()
@@ -118,7 +118,7 @@ func (h *HTTPMethodsModule) enumerateHTTPMethods(client *http.Client, baseURL st
 		}
 	}
 
-	// Tehlikeli metodların allowed olup olmadığını kontrol et
+	// Check if dangerous methods are allowed
 	dangerousMethods := []string{"PUT", "DELETE", "TRACE", "CONNECT"}
 	for _, method := range dangerousMethods {
 		if contains(allowedMethods, method) {
@@ -133,14 +133,14 @@ func (h *HTTPMethodsModule) enumerateHTTPMethods(client *http.Client, baseURL st
 			vuln := CreateVulnerability(
 				"HTTP-METHODS-001",
 				fmt.Sprintf("Dangerous HTTP Method Enabled: %s", method),
-				fmt.Sprintf("Tehlikeli HTTP method aktif: %s", method),
+				fmt.Sprintf("Dangerous HTTP method is active: %s", method),
 				severity,
 				cvss,
 			)
 			vuln.URL = baseURL
 			vuln.Method = method
 			vuln.Evidence = fmt.Sprintf("%s method allowed", method)
-			vuln.Remediation = fmt.Sprintf("%s method'unu devre dışı bırakın", method)
+			vuln.Remediation = fmt.Sprintf("Disable %s method", method)
 			vuln.CWE = "CWE-650"
 			vuln.OWASP = "A05:2021 – Security Misconfiguration"
 			vulns = append(vulns, vuln)
@@ -150,7 +150,7 @@ func (h *HTTPMethodsModule) enumerateHTTPMethods(client *http.Client, baseURL st
 	return info, vulns
 }
 
-// testDangerousMethods tehlikeli HTTP metodlarını test eder
+// testDangerousMethods tests dangerous HTTP methods
 func (h *HTTPMethodsModule) testDangerousMethods(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
@@ -169,12 +169,12 @@ func (h *HTTPMethodsModule) testDangerousMethods(client *http.Client, baseURL st
 	return vulns
 }
 
-// testPUTMethod PUT method ile file upload test eder
+// testPUTMethod tests file upload with PUT method
 func (h *HTTPMethodsModule) testPUTMethod(client *http.Client, baseURL string) *Vulnerability {
 	testContent := "<!-- IIS Security Scanner Test File -->\n<html><body>Test</body></html>"
 	testFile := "/iis_scanner_test.html"
 
-	// PUT ile dosya yüklemeyi dene
+	// Try file upload with PUT
 	resp, err := client.Request("PUT", baseURL+testFile, testContent)
 	if err != nil {
 		return nil
@@ -182,28 +182,28 @@ func (h *HTTPMethodsModule) testPUTMethod(client *http.Client, baseURL string) *
 	h.IncrementRequests()
 
 	if resp.StatusCode == 201 || resp.StatusCode == 200 {
-		// Dosyanın yüklenip yüklenmediğini kontrol et
+		// Check if file was uploaded
 		getResp, err := client.Get(baseURL + testFile)
 		if err == nil {
 			h.IncrementRequests()
 
 			if getResp.StatusCode == 200 && strings.Contains(getResp.Body, "IIS Security Scanner Test File") {
-				// Cleanup - dosyayı sil
+				// Clean up test file
 				client.Request("DELETE", baseURL+testFile, "")
 				h.IncrementRequests()
 
 				vuln := CreateVulnerability(
 					"HTTP-METHODS-002",
 					"HTTP PUT Method File Upload",
-					"PUT method ile dosya yükleme mümkün",
+					"File upload is possible with PUT method",
 					"CRITICAL",
 					9.8,
 				)
 				vuln.URL = baseURL + testFile
 				vuln.Method = "PUT"
 				vuln.Payload = testContent
-				vuln.Evidence = "Test dosyası başarıyla yüklendi ve erişildi"
-				vuln.Remediation = "PUT method'unu devre dışı bırakın"
+				vuln.Evidence = "Test file successfully uploaded and accessed"
+				vuln.Remediation = "Disable PUT method"
 				vuln.CWE = "CWE-434"
 				vuln.OWASP = "A03:2021 – Injection"
 				return &vuln
@@ -214,20 +214,20 @@ func (h *HTTPMethodsModule) testPUTMethod(client *http.Client, baseURL string) *
 	return nil
 }
 
-// testDELETEMethod DELETE method ile file deletion test eder
+// testDELETEMethod tests file deletion with DELETE method
 func (h *HTTPMethodsModule) testDELETEMethod(client *http.Client, baseURL string) *Vulnerability {
-	// Önce test dosyası oluştur
+	// First create test file
 	testContent := "<!-- IIS Security Scanner Test File for DELETE -->"
 	testFile := "/iis_scanner_delete_test.html"
 
-	// PUT ile test dosyası oluştur
+	// Create test file with PUT
 	putResp, err := client.Request("PUT", baseURL+testFile, testContent)
 	if err != nil || (putResp.StatusCode != 201 && putResp.StatusCode != 200) {
 		return nil
 	}
 	h.IncrementRequests()
 
-	// DELETE ile dosyayı silmeyi dene
+	// Try to delete test file
 	deleteResp, err := client.Request("DELETE", baseURL+testFile, "")
 	if err != nil {
 		return nil
@@ -235,7 +235,7 @@ func (h *HTTPMethodsModule) testDELETEMethod(client *http.Client, baseURL string
 	h.IncrementRequests()
 
 	if deleteResp.StatusCode == 200 || deleteResp.StatusCode == 204 {
-		// Dosyanın silinip silinmediğini kontrol et
+		// Check if test file was deleted
 		getResp, err := client.Get(baseURL + testFile)
 		if err == nil {
 			h.IncrementRequests()
@@ -244,14 +244,14 @@ func (h *HTTPMethodsModule) testDELETEMethod(client *http.Client, baseURL string
 				vuln := CreateVulnerability(
 					"HTTP-METHODS-003",
 					"HTTP DELETE Method File Deletion",
-					"DELETE method ile dosya silme mümkün",
+					"File deletion is possible with DELETE method",
 					"HIGH",
 					8.1,
 				)
 				vuln.URL = baseURL + testFile
 				vuln.Method = "DELETE"
-				vuln.Evidence = "Test dosyası başarıyla silindi"
-				vuln.Remediation = "DELETE method'unu devre dışı bırakın"
+				vuln.Evidence = "Test file successfully deleted"
+				vuln.Remediation = "Disable DELETE method"
 				vuln.CWE = "CWE-650"
 				vuln.OWASP = "A05:2021 – Security Misconfiguration"
 				return &vuln
@@ -262,7 +262,7 @@ func (h *HTTPMethodsModule) testDELETEMethod(client *http.Client, baseURL string
 	return nil
 }
 
-// testWebDAVMethods WebDAV metodlarını test eder
+// testWebDAVMethods tests WebDAV methods
 func (h *HTTPMethodsModule) testWebDAVMethods(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
@@ -279,14 +279,14 @@ func (h *HTTPMethodsModule) testWebDAVMethods(client *http.Client, baseURL strin
 			vuln := CreateVulnerability(
 				"HTTP-METHODS-004",
 				fmt.Sprintf("WebDAV Method Enabled: %s", method),
-				fmt.Sprintf("WebDAV method aktif: %s", method),
+				fmt.Sprintf("WebDAV method is active: %s", method),
 				"MEDIUM",
 				6.1,
 			)
 			vuln.URL = baseURL
 			vuln.Method = method
 			vuln.Evidence = fmt.Sprintf("%s method allowed (Status: %d)", method, resp.StatusCode)
-			vuln.Remediation = "WebDAV'ı devre dışı bırakın"
+			vuln.Remediation = "Disable WebDAV"
 			vuln.CWE = "CWE-650"
 			vuln.OWASP = "A05:2021 – Security Misconfiguration"
 			vulns = append(vulns, vuln)
@@ -302,7 +302,7 @@ func (h *HTTPMethodsModule) testWebDAVMethods(client *http.Client, baseURL strin
 	return vulns
 }
 
-// testPROPFIND PROPFIND method ile directory enumeration test eder
+// testPROPFIND tests directory enumeration with PROPFIND method
 func (h *HTTPMethodsModule) testPROPFIND(client *http.Client, baseURL string) *Vulnerability {
 	propfindBody := `<?xml version="1.0" encoding="utf-8"?>
 <D:propfind xmlns:D="DAV:">
@@ -319,15 +319,15 @@ func (h *HTTPMethodsModule) testPROPFIND(client *http.Client, baseURL string) *V
 		vuln := CreateVulnerability(
 			"HTTP-METHODS-005",
 			"WebDAV PROPFIND Directory Enumeration",
-			"PROPFIND method ile directory enumeration mümkün",
+			"Directory enumeration is possible with PROPFIND method",
 			"MEDIUM",
 			5.3,
 		)
 		vuln.URL = baseURL
 		vuln.Method = "PROPFIND"
 		vuln.Payload = propfindBody
-		vuln.Evidence = "PROPFIND XML response alındı"
-		vuln.Remediation = "WebDAV PROPFIND method'unu devre dışı bırakın"
+		vuln.Evidence = "PROPFIND XML response received"
+		vuln.Remediation = "Disable WebDAV PROPFIND method"
 		vuln.CWE = "CWE-200"
 		vuln.OWASP = "A01:2021 – Broken Access Control"
 		return &vuln
@@ -336,7 +336,7 @@ func (h *HTTPMethodsModule) testPROPFIND(client *http.Client, baseURL string) *V
 	return nil
 }
 
-// testMethodOverride HTTP method override test eder
+// testMethodOverride tests HTTP method override
 func (h *HTTPMethodsModule) testMethodOverride(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
@@ -358,22 +358,22 @@ func (h *HTTPMethodsModule) testMethodOverride(client *http.Client, baseURL stri
 		}
 
 		// Override header ekle
-		// Not: Bu basit implementasyon, gerçek implementasyonda header'ı request'e eklemek gerekir
+		// Note: This simple implementation, in real implementation header needs to be added to request
 		h.IncrementRequests()
 
-		// Basit kontrol - gerçek implementasyonda daha detaylı test yapılmalı
-		if resp.StatusCode != 405 { // Method Not Allowed değilse
+		// Simple check - more detailed testing should be done in real implementation
+		if resp.StatusCode != 405 { // If not Method Not Allowed
 			vuln := CreateVulnerability(
 				"HTTP-METHODS-006",
 				fmt.Sprintf("HTTP Method Override Possible: %s", header),
-				fmt.Sprintf("HTTP method override mümkün: %s", header),
+				fmt.Sprintf("HTTP method override is possible: %s", header),
 				"MEDIUM",
 				5.3,
 			)
 			vuln.URL = baseURL
 			vuln.Method = "POST"
-			vuln.Evidence = fmt.Sprintf("%s header ile method override test edildi", header)
-			vuln.Remediation = "Method override özelliğini devre dışı bırakın"
+			vuln.Evidence = fmt.Sprintf("%s header method override tested", header)
+			vuln.Remediation = "Disable HTTP method override headers"
 			vuln.CWE = "CWE-650"
 			vuln.OWASP = "A05:2021 – Security Misconfiguration"
 			vulns = append(vulns, vuln)
@@ -383,7 +383,7 @@ func (h *HTTPMethodsModule) testMethodOverride(client *http.Client, baseURL stri
 	return vulns
 }
 
-// testTraceXST TRACE method ile XST (Cross-Site Tracing) test eder
+// testTraceXST tests XST (Cross-Site Tracing) with TRACE method
 func (h *HTTPMethodsModule) testTraceXST(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
@@ -397,14 +397,14 @@ func (h *HTTPMethodsModule) testTraceXST(client *http.Client, baseURL string) []
 		vuln := CreateVulnerability(
 			"HTTP-METHODS-007",
 			"HTTP TRACE Method XST Vulnerability",
-			"TRACE method aktif - Cross-Site Tracing (XST) saldırısına açık",
+			"XST attack is possible with TRACE method",
 			"MEDIUM",
 			6.1,
 		)
 		vuln.URL = baseURL
 		vuln.Method = "TRACE"
-		vuln.Evidence = "TRACE method response alındı"
-		vuln.Remediation = "TRACE method'unu devre dışı bırakın"
+		vuln.Evidence = "TRACE method is active and vulnerable to XST attacks"
+		vuln.Remediation = "Disable TRACE method completely"
 		vuln.CWE = "CWE-79"
 		vuln.OWASP = "A03:2021 – Injection"
 		vuln.References = []string{
@@ -428,7 +428,7 @@ func (h *HTTPMethodsModule) isMethodAllowed(statusCode int) bool {
 		}
 	}
 
-	// 405 Method Not Allowed değilse ve 4xx/5xx error değilse allowed kabul et
+	// If not 405 Method Not Allowed and not 4xx/5xx error, consider it allowed
 	return statusCode != 405 && statusCode < 400
 }
 

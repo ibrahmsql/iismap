@@ -9,40 +9,40 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Config ana konfigürasyon yapısı
+// Config main configuration structure
 type Config struct {
 	// Hedef bilgileri
 	Target    string
 	ParsedURL *url.URL
 
-	// Modül seçenekleri
+	// Module options
 	Modules       []string
 	Wordlist      string
 	Comprehensive bool
 	Fast          bool
 
-	// Tarama seçenekleri
+	// Scan options
 	Stealth bool
 	Delay   time.Duration
 	Threads int
 	Timeout time.Duration
 
-	// Çıktı seçenekleri
+	// Output options
 	Output string
 	Format string
 
-	// Network seçenekleri
+	// Network options
 	Proxy     string
 	UserAgent string
 	Cookies   map[string]string
 	Headers   map[string]string
 
-	// Debug seçenekleri
+	// Debug options
 	Verbose bool
 	Debug   bool
 }
 
-// LoadFromFlags cobra command'dan konfigürasyonu yükler
+// LoadFromFlags loads configuration from cobra command
 func LoadFromFlags(cmd *cobra.Command) (*Config, error) {
 	cfg := &Config{}
 
@@ -55,7 +55,7 @@ func LoadFromFlags(cmd *cobra.Command) (*Config, error) {
 	cfg.Comprehensive, _ = cmd.Flags().GetBool("comprehensive")
 	cfg.Fast, _ = cmd.Flags().GetBool("fast")
 
-	// Tarama seçenekleri
+	// Scanning options
 	cfg.Stealth, _ = cmd.Flags().GetBool("stealth")
 	delay, _ := cmd.Flags().GetFloat64("delay")
 	cfg.Delay = time.Duration(delay * float64(time.Second))
@@ -63,11 +63,11 @@ func LoadFromFlags(cmd *cobra.Command) (*Config, error) {
 	timeout, _ := cmd.Flags().GetInt("timeout")
 	cfg.Timeout = time.Duration(timeout) * time.Second
 
-	// Çıktı seçenekleri
+	// Output options
 	cfg.Output, _ = cmd.Flags().GetString("output")
 	cfg.Format, _ = cmd.Flags().GetString("format")
 
-	// Network seçenekleri
+	// Network options
 	cfg.Proxy, _ = cmd.Flags().GetString("proxy")
 	cfg.UserAgent, _ = cmd.Flags().GetString("user-agent")
 	if cfg.UserAgent == "" {
@@ -80,41 +80,41 @@ func LoadFromFlags(cmd *cobra.Command) (*Config, error) {
 	headers, _ := cmd.Flags().GetString("headers")
 	cfg.Headers = parseHeaders(headers)
 
-	// Debug seçenekleri
+	// Debug options
 	cfg.Verbose, _ = cmd.Flags().GetBool("verbose")
 	cfg.Debug, _ = cmd.Flags().GetBool("debug")
 
 	// URL'yi parse et
 	cfg.ParsedURL, err = url.Parse(cfg.Target)
 	if err != nil {
-		return nil, fmt.Errorf("geçersiz URL: %v", err)
+		return nil, fmt.Errorf("invalid URL: %v", err)
 	}
 
-	// Varsayılan değerleri ayarla
+	// Set default values
 	cfg.setDefaults()
 
 	return cfg, nil
 }
 
-// ValidateTarget hedef URL'yi doğrular
+// ValidateTarget validates target URL
 func (c *Config) ValidateTarget() error {
 	if c.ParsedURL.Scheme == "" || c.ParsedURL.Host == "" {
-		return fmt.Errorf("geçersiz URL formatı")
+		return fmt.Errorf("invalid URL format")
 	}
 
 	if c.ParsedURL.Scheme != "http" && c.ParsedURL.Scheme != "https" {
-		return fmt.Errorf("sadece HTTP/HTTPS protokolleri desteklenir")
+		return fmt.Errorf("only HTTP/HTTPS protocols are supported")
 	}
 
 	return nil
 }
 
-// GetBaseURL base URL'yi döndürür
+// GetBaseURL returns base URL
 func (c *Config) GetBaseURL() string {
 	return fmt.Sprintf("%s://%s", c.ParsedURL.Scheme, c.ParsedURL.Host)
 }
 
-// parseModules modül listesini parse eder
+// parseModules parses module list
 func parseModules(modules string) []string {
 	if modules == "" {
 		return getDefaultModules()
@@ -128,7 +128,7 @@ func parseModules(modules string) []string {
 	return result
 }
 
-// getDefaultModules varsayılan modül listesi
+// getDefaultModules returns default module list
 func getDefaultModules() []string {
 	return []string{
 		"wappalyzer_detection",
@@ -141,7 +141,7 @@ func getDefaultModules() []string {
 	}
 }
 
-// getAllModules tüm mevcut modüller
+// getAllModules returns all available modules
 func getAllModules() []string {
 	return []string{
 		"wappalyzer_detection",
@@ -208,11 +208,11 @@ func parseHeaders(headerStr string) map[string]string {
 	return headers
 }
 
-// setDefaults varsayılan değerleri ayarlar
+// setDefaults sets default values
 func (c *Config) setDefaults() {
-	// Fast modda daha hızlı tarama
+	// Faster scanning in fast mode
 	if c.Fast {
-		c.Delay = 0 // Hiç delay yok
+		c.Delay = 0 // No delay
 		if c.Threads < 50 {
 			c.Threads = 50
 		}
@@ -221,7 +221,7 @@ func (c *Config) setDefaults() {
 		}
 	}
 
-	// Stealth modda daha yavaş tarama
+	// Slower scanning in stealth mode
 	if c.Stealth {
 		if c.Delay < time.Second {
 			c.Delay = time.Second
@@ -231,22 +231,22 @@ func (c *Config) setDefaults() {
 		}
 	}
 
-	// Comprehensive modda tüm modüller
+	// All modules in comprehensive mode
 	if c.Comprehensive {
 		c.Modules = getAllModules()
 	}
 
-	// Windows detection modülünü her zaman ekle (eğer yoksa)
+	// Always add Windows detection module (if not present)
 	c.ensureWindowsDetection()
 
-	// Output dosyası belirtilmemişse varsayılan
+	// Default if output file is not specified
 	if c.Output == "" {
 		c.Output = fmt.Sprintf("iis_scan_report_%d.%s",
 			time.Now().Unix(), c.Format)
 	}
 }
 
-// ensureWindowsDetection Windows detection modülünün listede olduğundan emin olur
+// ensureWindowsDetection ensures Windows detection module is in the list
 func (c *Config) ensureWindowsDetection() {
 	hasWindowsDetection := false
 	for _, module := range c.Modules {
@@ -257,7 +257,7 @@ func (c *Config) ensureWindowsDetection() {
 	}
 
 	if !hasWindowsDetection {
-		// Wappalyzer detection'ı listenin başına ekle
+		// Add Wappalyzer detection to the beginning of the list
 		newModules := []string{"wappalyzer_detection"}
 		newModules = append(newModules, c.Modules...)
 		c.Modules = newModules

@@ -13,13 +13,13 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// Reporter rapor oluşturucu
+// Reporter report generator
 type Reporter struct {
 	config *config.Config
 	logger *logger.Logger
 }
 
-// Report rapor yapısı
+// Report report structure
 type Report struct {
 	Metadata    ReportMetadata  `json:"metadata"`
 	Target      TargetInfo      `json:"target"`
@@ -28,7 +28,7 @@ type Report struct {
 	GeneratedAt time.Time       `json:"generated_at"`
 }
 
-// ReportMetadata rapor meta bilgileri
+// ReportMetadata report metadata
 type ReportMetadata struct {
 	Tool        string `json:"tool"`
 	Version     string `json:"version"`
@@ -36,7 +36,7 @@ type ReportMetadata struct {
 	Description string `json:"description"`
 }
 
-// TargetInfo hedef bilgileri
+// TargetInfo target information
 type TargetInfo struct {
 	URL    string `json:"url"`
 	Host   string `json:"host"`
@@ -44,7 +44,7 @@ type TargetInfo struct {
 	Port   string `json:"port"`
 }
 
-// ScanSummary tarama özeti
+// ScanSummary scan summary
 type ScanSummary struct {
 	Duration      time.Duration `json:"duration"`
 	ModulesRun    int           `json:"modules_run"`
@@ -53,7 +53,7 @@ type ScanSummary struct {
 	InfoCount     int           `json:"info_count"`
 }
 
-// VulnSummary zafiyet özeti
+// VulnSummary vulnerability summary
 type VulnSummary struct {
 	Total    int `json:"total"`
 	Critical int `json:"critical"`
@@ -62,7 +62,7 @@ type VulnSummary struct {
 	Low      int `json:"low"`
 }
 
-// New yeni reporter oluşturur
+// New creates new reporter
 func New(cfg *config.Config, log *logger.Logger) *Reporter {
 	return &Reporter{
 		config: cfg,
@@ -70,12 +70,12 @@ func New(cfg *config.Config, log *logger.Logger) *Reporter {
 	}
 }
 
-// GenerateReport rapor oluşturur
+// GenerateReport generates report
 func (r *Reporter) GenerateReport(results scanner.Results, duration time.Duration) (string, error) {
-	// Rapor yapısını oluştur
+	// Build report structure
 	report := r.buildReport(results, duration)
 
-	// Format'a göre rapor oluştur
+	// Generate report based on format
 	switch r.config.Format {
 	case "json":
 		return r.generateJSONReport(report)
@@ -88,9 +88,9 @@ func (r *Reporter) GenerateReport(results scanner.Results, duration time.Duratio
 	}
 }
 
-// buildReport rapor yapısını oluşturur
+// buildReport builds report structure
 func (r *Reporter) buildReport(results scanner.Results, duration time.Duration) *Report {
-	// Hedef bilgileri
+	// Target information
 	target := TargetInfo{
 		URL:    r.config.Target,
 		Host:   r.config.ParsedURL.Host,
@@ -98,7 +98,7 @@ func (r *Reporter) buildReport(results scanner.Results, duration time.Duration) 
 		Port:   r.config.ParsedURL.Port(),
 	}
 
-	// Özet bilgileri hesapla
+	// Calculate summary information
 	summary := r.calculateSummary(results, duration)
 
 	return &Report{
@@ -115,7 +115,7 @@ func (r *Reporter) buildReport(results scanner.Results, duration time.Duration) 
 	}
 }
 
-// calculateSummary özet bilgileri hesaplar
+// calculateSummary calculates summary information
 func (r *Reporter) calculateSummary(results scanner.Results, duration time.Duration) ScanSummary {
 	var totalRequests int
 	var infoCount int
@@ -149,26 +149,26 @@ func (r *Reporter) calculateSummary(results scanner.Results, duration time.Durat
 	}
 }
 
-// generateJSONReport JSON raporu oluşturur
+// generateJSONReport creates JSON report
 func (r *Reporter) generateJSONReport(report *Report) (string, error) {
-	// JSON dosyası oluştur
+	// Create JSON file
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
-		return "", fmt.Errorf("JSON marshaling hatası: %v", err)
+		return "", fmt.Errorf("JSON marshaling error: %v", err)
 	}
 
-	// Dosyaya yaz
+	// Write to file
 	filename := r.getOutputFilename("json")
 	err = os.WriteFile(filename, jsonData, 0644)
 	if err != nil {
-		return "", fmt.Errorf("dosya yazma hatası: %v", err)
+		return "", fmt.Errorf("file write error: %v", err)
 	}
 
-	r.logger.Success("JSON raporu oluşturuldu: %s", filename)
+	r.logger.Success("JSON report created: %s", filename)
 	return filename, nil
 }
 
-// generateHTMLReport HTML raporu oluşturur
+// generateHTMLReport creates HTML report
 func (r *Reporter) generateHTMLReport(report *Report) (string, error) {
 	// HTML template
 	htmlTemplate := `
@@ -243,40 +243,40 @@ func (r *Reporter) generateHTMLReport(report *Report) (string, error) {
 </body>
 </html>`
 
-	// Template'i parse et
+	// Parse template
 	tmpl, err := template.New("report").Funcs(template.FuncMap{
 		"lower": func(s string) string {
 			return fmt.Sprintf("%s", s)
 		},
 	}).Parse(htmlTemplate)
 	if err != nil {
-		return "", fmt.Errorf("template parsing hatası: %v", err)
+		return "", fmt.Errorf("template parsing error: %v", err)
 	}
 
-	// HTML dosyası oluştur
+	// Create HTML file
 	filename := r.getOutputFilename("html")
 	file, err := os.Create(filename)
 	if err != nil {
-		return "", fmt.Errorf("dosya oluşturma hatası: %v", err)
+		return "", fmt.Errorf("file creation error: %v", err)
 	}
 	defer file.Close()
 
-	// Template'i execute et
+	// Execute template
 	err = tmpl.Execute(file, report)
 	if err != nil {
-		return "", fmt.Errorf("template execution hatası: %v", err)
+		return "", fmt.Errorf("template execution error: %v", err)
 	}
 
-	r.logger.Success("HTML raporu oluşturuldu: %s", filename)
+	r.logger.Success("HTML report created: %s", filename)
 	return filename, nil
 }
 
-// generateXMLReport XML raporu oluşturur
+// generateXMLReport creates XML report
 func (r *Reporter) generateXMLReport(report *Report) (string, error) {
-	// Basit XML implementasyonu
+	// Simple XML implementation
 	filename := r.getOutputFilename("xml")
 
-	// JSON'u XML'e çevir (basit implementasyon)
+	// Convert JSON to XML (simple implementation)
 	jsonData, _ := json.MarshalIndent(report, "", "  ")
 
 	xmlContent := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
@@ -286,24 +286,24 @@ func (r *Reporter) generateXMLReport(report *Report) (string, error) {
 
 	err := os.WriteFile(filename, []byte(xmlContent), 0644)
 	if err != nil {
-		return "", fmt.Errorf("XML dosya yazma hatası: %v", err)
+		return "", fmt.Errorf("XML file write error: %v", err)
 	}
 
-	r.logger.Success("XML raporu oluşturuldu: %s", filename)
+	r.logger.Success("XML report created: %s", filename)
 	return filename, nil
 }
 
-// getOutputFilename çıktı dosya adını oluşturur
+// getOutputFilename generates output filename
 func (r *Reporter) getOutputFilename(extension string) string {
 	if r.config.Output != "" {
-		// Uzantıyı değiştir
+		// Change extension
 		dir := filepath.Dir(r.config.Output)
 		base := filepath.Base(r.config.Output)
 		name := base[:len(base)-len(filepath.Ext(base))]
 		return filepath.Join(dir, name+"."+extension)
 	}
 
-	// Varsayılan dosya adı
+	// Default filename
 	timestamp := time.Now().Format("20060102_150405")
 	return fmt.Sprintf("iis_scan_report_%s.%s", timestamp, extension)
 }

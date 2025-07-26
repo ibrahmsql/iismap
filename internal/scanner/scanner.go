@@ -12,7 +12,7 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// Scanner ana tarama motoru
+// Scanner main scanning engine
 type Scanner struct {
 	config     *config.Config
 	logger     *logger.Logger
@@ -20,10 +20,10 @@ type Scanner struct {
 	modules    []modules.Module
 }
 
-// Results tarama sonuçları
+// Results scan results
 type Results map[string]*modules.ModuleResult
 
-// New yeni scanner oluşturur
+// New creates a new scanner
 func New(cfg *config.Config, log *logger.Logger) *Scanner {
 	return &Scanner{
 		config:     cfg,
@@ -33,24 +33,24 @@ func New(cfg *config.Config, log *logger.Logger) *Scanner {
 	}
 }
 
-// Scan taramayı başlatır
+// Scan starts the scanning process
 func (s *Scanner) Scan() (Results, error) {
-	s.logger.Info("Tarama başlatılıyor...")
+	s.logger.Info("Starting scan...")
 
 	results := make(Results)
 
-	// Önce Windows detection modülünü çalıştır
+	// First run Windows detection module
 	windowsModule := s.findWindowsDetectionModule()
 	if windowsModule != nil {
-		s.logger.Info("🔍 Windows Server kontrolü yapılıyor...")
+		s.logger.Info("🔍 Checking Windows Server...")
 		windowsResult, err := windowsModule.Run(s.httpClient)
 		if err != nil {
-			return nil, fmt.Errorf("Windows detection hatası: %v", err)
+			return nil, fmt.Errorf("Windows detection error: %v", err)
 		}
 
 		results[windowsModule.Name()] = windowsResult
 
-		// Windows Server kontrolü
+		// Windows Server check
 		if !s.isWindowsServer(windowsResult) {
 			s.logger.Error("❌ TARGET SYSTEM IS NOT DETECTED AS WINDOWS SERVER!")
 			s.logger.Error("❌ IIS normally runs only on Windows Server.")
@@ -60,13 +60,13 @@ func (s *Scanner) Scan() (Results, error) {
 			s.logger.Success("✅ Windows Server detected - IIS scan continuing")
 		}
 	} else {
-		s.logger.Warning("⚠️  Windows detection modülü bulunamadı - tarama devam ediyor")
+		s.logger.Warning("⚠️  Windows detection module not found - continuing scan")
 	}
 
-	// Diğer modülleri çalıştır (Windows detection hariç)
+	// Run other modules (except Windows detection)
 	otherModules := s.getOtherModules()
 	if len(otherModules) == 0 {
-		s.logger.Info("Windows detection dışında çalıştırılacak modül yok")
+		s.logger.Info("No modules to run except Windows detection")
 		return results, nil
 	}
 
@@ -85,18 +85,18 @@ func (s *Scanner) Scan() (Results, error) {
 			semaphore <- struct{}{}
 			defer func() { <-semaphore }()
 
-			// Delay uygula (fast modda hiç delay yok)
+			// Apply delay (no delay in fast mode)
 			if !s.config.Fast {
 				if s.config.Stealth && s.config.Delay > 0 {
 					time.Sleep(s.config.Delay)
 				} else if s.config.Delay > 0 {
-					time.Sleep(s.config.Delay / 5) // Normal modda çok kısa delay
+					time.Sleep(s.config.Delay / 5) // Very short delay in normal mode
 				}
 			}
 
-			s.logger.Info("Modül çalıştırılıyor: %s", mod.Name())
+			s.logger.Info("Running module: %s", mod.Name())
 
-			// Modülü çalıştır
+			// Run module
 			result, err := mod.Run(s.httpClient)
 			if err != nil {
 				s.logger.Error("Module error [%s]: %v", mod.Name(), err)
@@ -108,7 +108,7 @@ func (s *Scanner) Scan() (Results, error) {
 				}
 			}
 
-			// Sonuçları kaydet
+			// Save results
 			mu.Lock()
 			results[mod.Name()] = result
 			mu.Unlock()
@@ -128,18 +128,18 @@ func (s *Scanner) Scan() (Results, error) {
 		}(module)
 	}
 
-	// Tüm modüllerin tamamlanmasını bekle
+	// Wait for all modules to complete
 	wg.Wait()
 
-	s.logger.Info("Tarama tamamlandı")
+	s.logger.Info("Scan completed")
 	return results, nil
 }
 
-// loadModules konfigürasyona göre modülleri yükler
+// loadModules loads modules according to configuration
 func loadModules(cfg *config.Config, log *logger.Logger) []modules.Module {
 	var loadedModules []modules.Module
 
-	// Mevcut modüller
+	// Available modules
 	availableModules := map[string]func(*config.Config, *logger.Logger) modules.Module{
 		"wappalyzer_detection":   modules.NewWappalyzerDetectionModule,
 		"windows_detection":      modules.NewWindowsDetectionModule,
@@ -154,20 +154,20 @@ func loadModules(cfg *config.Config, log *logger.Logger) []modules.Module {
 		"filehunter":             modules.NewFileHunterModule,
 	}
 
-	// Seçilen modülleri yükle
+	// Load selected modules
 	for _, moduleName := range cfg.Modules {
 		if moduleFactory, exists := availableModules[moduleName]; exists {
 			module := moduleFactory(cfg, log)
 			loadedModules = append(loadedModules, module)
-			log.Debug("Modül yüklendi: %s", moduleName)
+			log.Debug("Module loaded: %s", moduleName)
 		} else {
-			log.Warning("Bilinmeyen modül: %s", moduleName)
+			log.Warning("Unknown module: %s", moduleName)
 		}
 	}
 
 	if len(loadedModules) == 0 {
-		log.Warning("Hiç modül yüklenmedi, varsayılan modüller kullanılacak")
-		// Varsayılan modülleri yükle
+		log.Warning("No modules loaded, using default modules")
+		// Load default modules
 		defaultModules := []string{"fingerprint", "tilde", "config"}
 		for _, moduleName := range defaultModules {
 			if moduleFactory, exists := availableModules[moduleName]; exists {
@@ -177,20 +177,20 @@ func loadModules(cfg *config.Config, log *logger.Logger) []modules.Module {
 		}
 	}
 
-	log.Info("%d modül yüklendi", len(loadedModules))
+	log.Info("%d modules loaded", len(loadedModules))
 	return loadedModules
 }
 
-// findWindowsDetectionModule Windows detection modülünü bulur
+// findWindowsDetectionModule finds Windows detection module
 func (s *Scanner) findWindowsDetectionModule() modules.Module {
-	// Önce Wappalyzer detection'ı ara
+	// First look for Wappalyzer detection
 	for _, module := range s.modules {
 		if module.Name() == "wappalyzer_detection" {
 			return module
 		}
 	}
 
-	// Yoksa eski Windows detection'ı ara
+	// Then look for Windows detection
 	for _, module := range s.modules {
 		if module.Name() == "windows_detection" {
 			return module
@@ -199,7 +199,7 @@ func (s *Scanner) findWindowsDetectionModule() modules.Module {
 	return nil
 }
 
-// getOtherModules Windows detection dışındaki modülleri döndürür
+// getOtherModules returns modules other than Windows detection
 func (s *Scanner) getOtherModules() []modules.Module {
 	var otherModules []modules.Module
 	for _, module := range s.modules {
@@ -210,18 +210,18 @@ func (s *Scanner) getOtherModules() []modules.Module {
 	return otherModules
 }
 
-// isWindowsServer Windows detection sonucuna göre Windows Server olup olmadığını kontrol eder
+// isWindowsServer checks if the target is Windows Server based on detection results
 func (s *Scanner) isWindowsServer(result *modules.ModuleResult) bool {
-	// Wappalyzer detection için
+	// For Wappalyzer detection
 	if result.ModuleName == "wappalyzer_detection" {
-		// Zafiyet kontrolü - Non-Windows/IIS Server detected varsa Windows değil
+		// Vulnerability check - if Non-Windows/IIS Server detected, it's not Windows
 		for _, vuln := range result.Vulnerabilities {
 			if vuln.ID == "WAPP-DETECT-001" && strings.Contains(vuln.Title, "Non-Windows/IIS Server Detected") {
 				return false
 			}
 		}
 
-		// Info kontrolü - Windows veya IIS tespit edildi mi?
+		// Info check - was Windows or IIS detected?
 		for _, info := range result.Info {
 			if info.Type == "os_detection" && info.Value == "Windows" {
 				return true
@@ -238,15 +238,15 @@ func (s *Scanner) isWindowsServer(result *modules.ModuleResult) bool {
 		return false
 	}
 
-	// Eski Windows detection için
-	// Zafiyet kontrolü - Non-Windows Server detected varsa Windows değil
+	// For old Windows detection
+	// Vulnerability check - if Non-Windows Server detected, it's not Windows
 	for _, vuln := range result.Vulnerabilities {
 		if vuln.ID == "WIN-DETECT-001" && vuln.Title == "Non-Windows Server Detected" {
 			return false
 		}
 	}
 
-	// Info kontrolü - Windows Server tespit edildi mi?
+	// Info check - was Windows Server detected?
 	windowsIndicators := 0
 	for _, info := range result.Info {
 		switch info.Type {
@@ -265,11 +265,11 @@ func (s *Scanner) isWindowsServer(result *modules.ModuleResult) bool {
 		}
 	}
 
-	// En az 2 Windows göstergesi varsa Windows Server kabul et
+	// Accept as Windows Server if at least 2 Windows indicators
 	return windowsIndicators >= 2
 }
 
-// contains string içinde substring arar (case insensitive)
+// contains searches for substring in string (case insensitive)
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) &&
 		(s == substr ||
@@ -279,7 +279,7 @@ func contains(s, substr string) bool {
 					findInString(s, substr)))
 }
 
-// findInString string içinde substring arar
+// findInString searches for substring in string
 func findInString(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {

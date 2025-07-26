@@ -12,14 +12,14 @@ import (
 	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// ASPNETSecurityModule ASP.NET güvenlik kontrolleri modülü
+// ASPNETSecurityModule ASP.NET security controls module
 type ASPNETSecurityModule struct {
 	*BaseModule
 	config *config.Config
 	logger *logger.Logger
 }
 
-// NewASPNETSecurityModule yeni ASP.NET security modülü oluşturur
+// NewASPNETSecurityModule creates new ASP.NET security module
 func NewASPNETSecurityModule(cfg *config.Config, log *logger.Logger) Module {
 	return &ASPNETSecurityModule{
 		BaseModule: NewBaseModule("aspnet_security", "ASP.NET Security Vulnerabilities Scanner"),
@@ -28,7 +28,7 @@ func NewASPNETSecurityModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-// Run ASP.NET security modülünü çalıştırır
+// Run executes ASP.NET security module
 func (a *ASPNETSecurityModule) Run(client *http.Client) (*ModuleResult, error) {
 	a.Start()
 	defer a.End()
@@ -38,46 +38,46 @@ func (a *ASPNETSecurityModule) Run(client *http.Client) (*ModuleResult, error) {
 
 	baseURL := a.config.GetBaseURL()
 
-	// 1. ViewState Security Kontrolleri
-	a.logger.Debug("ViewState güvenlik kontrolleri yapılıyor...")
+	// 1. ViewState Security Controls
+	a.logger.Debug("Performing ViewState security controls...")
 	viewStateVulns, viewStateInfo := a.checkViewStateSecurity(client, baseURL)
 	vulnerabilities = append(vulnerabilities, viewStateVulns...)
 	info = append(info, viewStateInfo...)
 
-	// 2. Event Validation Kontrolleri
-	a.logger.Debug("Event validation kontrolleri yapılıyor...")
+	// 2. Event Validation Controls
+	a.logger.Debug("Performing event validation controls...")
 	eventVulns, eventInfo := a.checkEventValidation(client, baseURL)
 	vulnerabilities = append(vulnerabilities, eventVulns...)
 	info = append(info, eventInfo...)
 
 	// 3. Trace.axd Exposure
-	a.logger.Debug("Trace.axd exposure kontrol ediliyor...")
+	a.logger.Debug("Checking trace.axd exposure...")
 	traceVulns := a.checkTraceExposure(client, baseURL)
 	vulnerabilities = append(vulnerabilities, traceVulns...)
 
 	// 4. Elmah.axd Exposure
-	a.logger.Debug("Elmah.axd exposure kontrol ediliyor...")
+	a.logger.Debug("Checking elmah.axd exposure...")
 	elmahVulns := a.checkElmahExposure(client, baseURL)
 	vulnerabilities = append(vulnerabilities, elmahVulns...)
 
 	// 5. ASP.NET Error Information Disclosure
-	a.logger.Debug("ASP.NET error information disclosure kontrol ediliyor...")
+	a.logger.Debug("Checking ASP.NET error information disclosure...")
 	errorVulns := a.checkErrorInformationDisclosure(client, baseURL)
 	vulnerabilities = append(vulnerabilities, errorVulns...)
 
-	// 6. Session Management Kontrolleri
-	a.logger.Debug("Session management kontrolleri yapılıyor...")
+	// 6. Session Management Controls
+	a.logger.Debug("Performing session management controls...")
 	sessionVulns, sessionInfo := a.checkSessionManagement(client, baseURL)
 	vulnerabilities = append(vulnerabilities, sessionVulns...)
 	info = append(info, sessionInfo...)
 
 	// 7. Padding Oracle Attacks
-	a.logger.Debug("Padding oracle saldırıları test ediliyor...")
+	a.logger.Debug("Testing padding oracle attacks...")
 	paddingVulns := a.checkPaddingOracle(client, baseURL)
 	vulnerabilities = append(vulnerabilities, paddingVulns...)
 
 	// 8. ASP.NET Version Information Disclosure
-	a.logger.Debug("ASP.NET version information disclosure kontrol ediliyor...")
+	a.logger.Debug("Checking ASP.NET version information disclosure...")
 	versionVulns, versionInfo := a.checkVersionDisclosure(client, baseURL)
 	vulnerabilities = append(vulnerabilities, versionVulns...)
 	info = append(info, versionInfo...)
@@ -85,7 +85,7 @@ func (a *ASPNETSecurityModule) Run(client *http.Client) (*ModuleResult, error) {
 	return a.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
 
-// checkViewStateSecurity ViewState güvenlik kontrollerini yapar
+// checkViewStateSecurity performs ViewState security controls
 func (a *ASPNETSecurityModule) checkViewStateSecurity(client *http.Client, baseURL string) ([]Vulnerability, []Information) {
 	var vulns []Vulnerability
 	var info []Information
@@ -97,58 +97,58 @@ func (a *ASPNETSecurityModule) checkViewStateSecurity(client *http.Client, baseU
 	}
 	a.IncrementRequests()
 
-	// ViewState varlığını kontrol et
+	// Check for ViewState existence
 	viewStateRegex := regexp.MustCompile(`__VIEWSTATE[^>]*value="([^"]*)"`)
 	matches := viewStateRegex.FindStringSubmatch(resp.Body)
 
 	if len(matches) > 1 {
 		viewState := matches[1]
 		info = append(info, CreateInformation("viewstate_found", "ViewState Found",
-			"ASP.NET ViewState tespit edildi", "Present"))
+			"ASP.NET ViewState detected", "Present"))
 
-		// ViewState decode et
+		// Decode ViewState
 		decodedViewState, err := base64.StdEncoding.DecodeString(viewState)
 		if err == nil {
 			info = append(info, CreateInformation("viewstate_size", "ViewState Size",
-				"ViewState boyutu", fmt.Sprintf("%d bytes", len(decodedViewState))))
+				"ViewState size", fmt.Sprintf("%d bytes", len(decodedViewState))))
 
-			// ViewState MAC kontrolü
+			// ViewState MAC check
 			if !a.hasViewStateMAC(decodedViewState) {
 				vuln := CreateVulnerability(
 					"ASPNET-001",
 					"ViewState MAC Validation Disabled",
-					"ViewState MAC doğrulaması devre dışı. Bu durum ViewState manipulation saldırılarına açık bırakır.",
+					"ViewState MAC validation is disabled. This leaves the system vulnerable to ViewState manipulation attacks.",
 					"HIGH",
 					7.5,
 				)
 				vuln.URL = baseURL
 				vuln.Method = "GET"
-				vuln.Evidence = "ViewState MAC hash bulunamadı"
-				vuln.Remediation = "web.config'de enableViewStateMAC='true' ayarlayın"
+				vuln.Evidence = "ViewState MAC hash not found"
+				vuln.Remediation = "Set enableViewStateMAC='true' in web.config"
 				vuln.CWE = "CWE-345"
 				vuln.OWASP = "A08:2021 – Software and Data Integrity Failures"
 				vulns = append(vulns, vuln)
 			}
 
-			// ViewState encryption kontrolü
+			// ViewState encryption check
 			if !a.isViewStateEncrypted(decodedViewState) {
 				vuln := CreateVulnerability(
 					"ASPNET-002",
 					"ViewState Not Encrypted",
-					"ViewState şifrelenmemiş. Hassas bilgiler ViewState'de açık olarak saklanabilir.",
+					"ViewState not encrypted. Sensitive information may be stored in ViewState in plain text.",
 					"MEDIUM",
 					5.3,
 				)
 				vuln.URL = baseURL
 				vuln.Method = "GET"
-				vuln.Evidence = "ViewState encryption tespit edilmedi"
-				vuln.Remediation = "web.config'de viewStateEncryptionMode='Always' ayarlayın"
+				vuln.Evidence = "ViewState encryption not detected"
+				vuln.Remediation = "Set viewStateEncryptionMode='Always' in web.config"
 				vuln.CWE = "CWE-311"
 				vuln.OWASP = "A02:2021 – Cryptographic Failures"
 				vulns = append(vulns, vuln)
 			}
 
-			// ViewState manipulation testi
+			// ViewState manipulation test
 			manipulatedViewState := a.manipulateViewState(viewState)
 			if manipulatedViewState != "" {
 				manipulationVuln := a.testViewStateManipulation(client, baseURL, manipulatedViewState)
@@ -159,13 +159,13 @@ func (a *ASPNETSecurityModule) checkViewStateSecurity(client *http.Client, baseU
 		}
 	} else {
 		info = append(info, CreateInformation("viewstate_found", "ViewState Found",
-			"ASP.NET ViewState tespit edildi", "Not Present"))
+			"ASP.NET ViewState detected", "Not Present"))
 	}
 
 	return vulns, info
 }
 
-// checkEventValidation Event validation kontrollerini yapar
+// checkEventValidation performs event validation controls
 func (a *ASPNETSecurityModule) checkEventValidation(client *http.Client, baseURL string) ([]Vulnerability, []Information) {
 	var vulns []Vulnerability
 	var info []Information
@@ -176,31 +176,31 @@ func (a *ASPNETSecurityModule) checkEventValidation(client *http.Client, baseURL
 	}
 	a.IncrementRequests()
 
-	// Event validation varlığını kontrol et
+	// Check for Event validation existence
 	if strings.Contains(resp.Body, "__EVENTVALIDATION") {
 		info = append(info, CreateInformation("event_validation", "Event Validation",
-			"ASP.NET Event Validation tespit edildi", "Enabled"))
+			"ASP.NET Event Validation detected", "Enabled"))
 
-		// Event validation bypass testi
+		// Event validation bypass test
 		bypassVuln := a.testEventValidationBypass(client, baseURL)
 		if bypassVuln != nil {
 			vulns = append(vulns, *bypassVuln)
 		}
 	} else {
 		info = append(info, CreateInformation("event_validation", "Event Validation",
-			"ASP.NET Event Validation tespit edildi", "Disabled"))
+			"ASP.NET Event Validation detected", "Disabled"))
 
 		vuln := CreateVulnerability(
 			"ASPNET-003",
 			"Event Validation Disabled",
-			"ASP.NET Event Validation devre dışı. Bu durum CSRF saldırılarına karşı korumayı zayıflatır.",
+			"ASP.NET Event Validation disabled. This weakens protection against CSRF attacks.",
 			"MEDIUM",
 			6.1,
 		)
 		vuln.URL = baseURL
 		vuln.Method = "GET"
-		vuln.Evidence = "__EVENTVALIDATION field bulunamadı"
-		vuln.Remediation = "web.config'de enableEventValidation='true' ayarlayın"
+		vuln.Evidence = "__EVENTVALIDATION field not found"
+		vuln.Remediation = "Set enableEventValidation='true' in web.config"
 		vuln.CWE = "CWE-352"
 		vuln.OWASP = "A01:2021 – Broken Access Control"
 		vulns = append(vulns, vuln)
@@ -209,7 +209,7 @@ func (a *ASPNETSecurityModule) checkEventValidation(client *http.Client, baseURL
 	return vulns, info
 }
 
-// checkTraceExposure Trace.axd exposure'ını kontrol eder
+// checkTraceExposure checks Trace.axd exposure
 func (a *ASPNETSecurityModule) checkTraceExposure(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
@@ -232,14 +232,14 @@ func (a *ASPNETSecurityModule) checkTraceExposure(client *http.Client, baseURL s
 			vuln := CreateVulnerability(
 				"ASPNET-004",
 				"ASP.NET Trace Information Disclosure",
-				fmt.Sprintf("ASP.NET trace sayfası erişilebilir: %s", path),
+				fmt.Sprintf("ASP.NET trace page accessible: %s", path),
 				"HIGH",
 				7.5,
 			)
 			vuln.URL = baseURL + path
 			vuln.Method = "GET"
-			vuln.Evidence = "Application Trace sayfası erişilebilir"
-			vuln.Remediation = "web.config'de trace enabled='false' ayarlayın"
+			vuln.Evidence = "Application Trace page accessible"
+			vuln.Remediation = "Set trace enabled='false' in web.config"
 			vuln.CWE = "CWE-200"
 			vuln.OWASP = "A01:2021 – Broken Access Control"
 			vulns = append(vulns, vuln)
@@ -249,7 +249,7 @@ func (a *ASPNETSecurityModule) checkTraceExposure(client *http.Client, baseURL s
 	return vulns
 }
 
-// checkElmahExposure Elmah.axd exposure'ını kontrol eder
+// checkElmahExposure checks Elmah.axd exposure
 func (a *ASPNETSecurityModule) checkElmahExposure(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
@@ -273,14 +273,14 @@ func (a *ASPNETSecurityModule) checkElmahExposure(client *http.Client, baseURL s
 			vuln := CreateVulnerability(
 				"ASPNET-005",
 				"ELMAH Error Log Exposure",
-				fmt.Sprintf("ELMAH error log sayfası erişilebilir: %s", path),
+				fmt.Sprintf("ELMAH error log page accessible: %s", path),
 				"HIGH",
 				7.5,
 			)
 			vuln.URL = baseURL + path
 			vuln.Method = "GET"
-			vuln.Evidence = "ELMAH error log sayfası erişilebilir"
-			vuln.Remediation = "ELMAH'ı production'da devre dışı bırakın veya erişimi kısıtlayın"
+			vuln.Evidence = "ELMAH error log page accessible"
+			vuln.Remediation = "Disable ELMAH in production or restrict access"
 			vuln.CWE = "CWE-200"
 			vuln.OWASP = "A09:2021 – Security Logging and Monitoring Failures"
 			vulns = append(vulns, vuln)
@@ -290,11 +290,11 @@ func (a *ASPNETSecurityModule) checkElmahExposure(client *http.Client, baseURL s
 	return vulns
 }
 
-// checkErrorInformationDisclosure ASP.NET error information disclosure'ını kontrol eder
+// checkErrorInformationDisclosure checks ASP.NET error information disclosure
 func (a *ASPNETSecurityModule) checkErrorInformationDisclosure(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Error tetikleyici istekler
+	// Error triggering requests
 	errorTriggers := []string{
 		"/nonexistent.aspx",
 		"/test.aspx?param=<script>",
@@ -313,25 +313,25 @@ func (a *ASPNETSecurityModule) checkErrorInformationDisclosure(client *http.Clie
 			vuln := CreateVulnerability(
 				"ASPNET-006",
 				"ASP.NET Detailed Error Information Disclosure",
-				"ASP.NET detaylı hata mesajları açığa çıkıyor",
+				"ASP.NET detailed error messages are being exposed",
 				"MEDIUM",
 				5.3,
 			)
 			vuln.URL = baseURL + trigger
 			vuln.Method = "GET"
-			vuln.Evidence = "Detaylı hata mesajı tespit edildi"
-			vuln.Remediation = "web.config'de customErrors mode='On' ayarlayın"
+			vuln.Evidence = "Detailed error message detected"
+			vuln.Remediation = "Set customErrors mode='On' in web.config"
 			vuln.CWE = "CWE-200"
 			vuln.OWASP = "A09:2021 – Security Logging and Monitoring Failures"
 			vulns = append(vulns, vuln)
-			break // Bir tane bulunca yeter
+			break // One finding is enough
 		}
 	}
 
 	return vulns
 }
 
-// checkSessionManagement session management kontrollerini yapar
+// checkSessionManagement performs session management checks
 func (a *ASPNETSecurityModule) checkSessionManagement(client *http.Client, baseURL string) ([]Vulnerability, []Information) {
 	var vulns []Vulnerability
 	var info []Information
@@ -342,43 +342,43 @@ func (a *ASPNETSecurityModule) checkSessionManagement(client *http.Client, baseU
 	}
 	a.IncrementRequests()
 
-	// Session cookie kontrolü
+	// Session cookie check
 	for _, cookie := range resp.Headers["Set-Cookie"] {
 		if strings.Contains(strings.ToLower(cookie), "asp.net_sessionid") {
 			info = append(info, CreateInformation("session_cookie", "ASP.NET Session Cookie",
-				"ASP.NET session cookie tespit edildi", cookie))
+				"ASP.NET session cookie detected", cookie))
 
-			// HttpOnly kontrolü
+			// HttpOnly check
 			if !strings.Contains(strings.ToLower(cookie), "httponly") {
 				vuln := CreateVulnerability(
 					"ASPNET-007",
 					"Session Cookie Missing HttpOnly Flag",
-					"ASP.NET session cookie'si HttpOnly flag'i içermiyor",
+					"ASP.NET session cookie does not contain HttpOnly flag",
 					"MEDIUM",
 					6.1,
 				)
 				vuln.URL = baseURL
 				vuln.Method = "GET"
 				vuln.Evidence = cookie
-				vuln.Remediation = "web.config'de httpOnlyCookies='true' ayarlayın"
+				vuln.Remediation = "Set httpOnlyCookies='true' in web.config"
 				vuln.CWE = "CWE-1004"
 				vuln.OWASP = "A05:2021 – Security Misconfiguration"
 				vulns = append(vulns, vuln)
 			}
 
-			// Secure flag kontrolü (HTTPS için)
+			// Secure flag check (for HTTPS)
 			if a.config.ParsedURL.Scheme == "https" && !strings.Contains(strings.ToLower(cookie), "secure") {
 				vuln := CreateVulnerability(
 					"ASPNET-008",
 					"Session Cookie Missing Secure Flag",
-					"HTTPS üzerinde ASP.NET session cookie'si Secure flag'i içermiyor",
+					"ASP.NET session cookie over HTTPS does not contain Secure flag",
 					"MEDIUM",
 					6.1,
 				)
 				vuln.URL = baseURL
 				vuln.Method = "GET"
 				vuln.Evidence = cookie
-				vuln.Remediation = "web.config'de requireSSL='true' ayarlayın"
+				vuln.Remediation = "Set requireSSL='true' in web.config"
 				vuln.CWE = "CWE-614"
 				vuln.OWASP = "A05:2021 – Security Misconfiguration"
 				vulns = append(vulns, vuln)
@@ -389,11 +389,11 @@ func (a *ASPNETSecurityModule) checkSessionManagement(client *http.Client, baseU
 	return vulns, info
 }
 
-// checkPaddingOracle padding oracle saldırılarını test eder
+// checkPaddingOracle tests padding oracle attacks
 func (a *ASPNETSecurityModule) checkPaddingOracle(client *http.Client, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// ViewState ile padding oracle testi
+	// Padding oracle test with ViewState
 	resp, err := client.Get(baseURL)
 	if err != nil {
 		return vulns
@@ -406,10 +406,10 @@ func (a *ASPNETSecurityModule) checkPaddingOracle(client *http.Client, baseURL s
 	if len(matches) > 1 {
 		originalViewState := matches[1]
 
-		// ViewState'i manipüle et (padding oracle için)
+		// Manipulate ViewState (for padding oracle)
 		manipulatedViewState := a.createPaddingOraclePayload(originalViewState)
 
-		// POST isteği gönder
+		// Send POST request
 		formData := url.Values{}
 		formData.Set("__VIEWSTATE", manipulatedViewState)
 
@@ -417,20 +417,20 @@ func (a *ASPNETSecurityModule) checkPaddingOracle(client *http.Client, baseURL s
 		if err == nil {
 			a.IncrementRequests()
 
-			// Padding oracle göstergeleri
+			// Padding oracle indicators
 			if a.isPaddingOracleVulnerable(postResp.Body) {
 				vuln := CreateVulnerability(
 					"ASPNET-009",
 					"ASP.NET Padding Oracle Vulnerability",
-					"ASP.NET padding oracle zafiyeti tespit edildi",
+					"ASP.NET padding oracle vulnerability detected",
 					"HIGH",
 					8.1,
 				)
 				vuln.URL = baseURL
 				vuln.Method = "POST"
 				vuln.Payload = manipulatedViewState
-				vuln.Evidence = "Padding oracle response pattern tespit edildi"
-				vuln.Remediation = "ASP.NET'i güncelleyin ve custom error pages kullanın"
+				vuln.Evidence = "Padding oracle response pattern detected"
+				vuln.Remediation = "Update ASP.NET and use custom error pages"
 				vuln.CWE = "CWE-209"
 				vuln.OWASP = "A02:2021 – Cryptographic Failures"
 				vuln.References = []string{
@@ -445,7 +445,7 @@ func (a *ASPNETSecurityModule) checkPaddingOracle(client *http.Client, baseURL s
 	return vulns
 }
 
-// checkVersionDisclosure ASP.NET version disclosure'ını kontrol eder
+// checkVersionDisclosure checks ASP.NET version disclosure
 func (a *ASPNETSecurityModule) checkVersionDisclosure(client *http.Client, baseURL string) ([]Vulnerability, []Information) {
 	var vulns []Vulnerability
 	var info []Information
@@ -460,19 +460,19 @@ func (a *ASPNETSecurityModule) checkVersionDisclosure(client *http.Client, baseU
 	aspNetVersion := resp.GetHeader("X-AspNet-Version")
 	if aspNetVersion != "" {
 		info = append(info, CreateInformation("aspnet_version_header", "ASP.NET Version Header",
-			"X-AspNet-Version header'ı", aspNetVersion))
+			"X-AspNet-Version header", aspNetVersion))
 
 		vuln := CreateVulnerability(
 			"ASPNET-010",
 			"ASP.NET Version Information Disclosure",
-			"ASP.NET versiyon bilgisi HTTP header'ında açığa çıkıyor",
+			"ASP.NET version information is exposed in HTTP header",
 			"LOW",
 			3.1,
 		)
 		vuln.URL = baseURL
 		vuln.Method = "HEAD"
 		vuln.Evidence = aspNetVersion
-		vuln.Remediation = "web.config'de enableVersionHeader='false' ayarlayın"
+		vuln.Remediation = "Set enableVersionHeader='false' in web.config"
 		vuln.CWE = "CWE-200"
 		vuln.OWASP = "A05:2021 – Security Misconfiguration"
 		vulns = append(vulns, vuln)
@@ -484,20 +484,20 @@ func (a *ASPNETSecurityModule) checkVersionDisclosure(client *http.Client, baseU
 // Helper functions
 
 func (a *ASPNETSecurityModule) hasViewStateMAC(viewState []byte) bool {
-	// ViewState MAC kontrolü (basit implementasyon)
+	// ViewState MAC check (simple implementation)
 	return len(viewState) > 20 && viewState[len(viewState)-20:] != nil
 }
 
 func (a *ASPNETSecurityModule) isViewStateEncrypted(viewState []byte) bool {
-	// ViewState encryption kontrolü (basit implementasyon)
-	// Şifrelenmiş ViewState genellikle daha rastgele görünür
+	// ViewState encryption check (simple implementation)
+	// Encrypted ViewState usually appears more random
 	return len(viewState) > 0 && viewState[0] != 0xFF
 }
 
 func (a *ASPNETSecurityModule) manipulateViewState(viewState string) string {
-	// ViewState manipulation (basit implementasyon)
+	// ViewState manipulation (simple implementation)
 	if len(viewState) > 10 {
-		// Son karakteri değiştir
+		// Change last character
 		manipulated := viewState[:len(viewState)-1] + "A"
 		return manipulated
 	}
@@ -514,12 +514,12 @@ func (a *ASPNETSecurityModule) testViewStateManipulation(client *http.Client, ba
 	}
 	a.IncrementRequests()
 
-	// ViewState manipulation başarılıysa
+	// If ViewState manipulation is successful
 	if resp.StatusCode == 200 && !strings.Contains(resp.Body, "ViewState") {
 		vuln := CreateVulnerability(
 			"ASPNET-011",
 			"ViewState Manipulation Possible",
-			"ViewState manipulation mümkün görünüyor",
+			"ViewState manipulation appears possible",
 			"MEDIUM",
 			6.1,
 		)
@@ -527,7 +527,7 @@ func (a *ASPNETSecurityModule) testViewStateManipulation(client *http.Client, ba
 		vuln.Method = "POST"
 		vuln.Payload = manipulatedViewState
 		vuln.Evidence = "Manipulated ViewState accepted"
-		vuln.Remediation = "ViewState MAC validation'ı etkinleştirin"
+		vuln.Remediation = "Enable ViewState MAC validation"
 		vuln.CWE = "CWE-345"
 		return &vuln
 	}
@@ -536,7 +536,7 @@ func (a *ASPNETSecurityModule) testViewStateManipulation(client *http.Client, ba
 }
 
 func (a *ASPNETSecurityModule) testEventValidationBypass(client *http.Client, baseURL string) *Vulnerability {
-	// Event validation bypass testi (basit implementasyon)
+	// Event validation bypass test (simple implementation)
 	formData := url.Values{}
 	formData.Set("__EVENTTARGET", "test")
 	formData.Set("__EVENTARGUMENT", "test")
@@ -551,14 +551,14 @@ func (a *ASPNETSecurityModule) testEventValidationBypass(client *http.Client, ba
 		vuln := CreateVulnerability(
 			"ASPNET-012",
 			"Event Validation Bypass",
-			"Event validation bypass mümkün",
+			"Event validation bypass possible",
 			"MEDIUM",
 			5.3,
 		)
 		vuln.URL = baseURL
 		vuln.Method = "POST"
 		vuln.Evidence = "Event validation bypass successful"
-		vuln.Remediation = "Event validation'ı etkinleştirin"
+		vuln.Remediation = "Enable event validation"
 		vuln.CWE = "CWE-352"
 		return &vuln
 	}
@@ -586,13 +586,13 @@ func (a *ASPNETSecurityModule) containsDetailedErrorInfo(body string) bool {
 }
 
 func (a *ASPNETSecurityModule) createPaddingOraclePayload(viewState string) string {
-	// Padding oracle payload oluştur (basit implementasyon)
+	// Create padding oracle payload (simple implementation)
 	decoded, err := base64.StdEncoding.DecodeString(viewState)
 	if err != nil {
 		return viewState
 	}
 
-	// Son byte'ı değiştir
+	// Change last byte
 	if len(decoded) > 0 {
 		decoded[len(decoded)-1] ^= 0x01
 	}
@@ -601,7 +601,7 @@ func (a *ASPNETSecurityModule) createPaddingOraclePayload(viewState string) stri
 }
 
 func (a *ASPNETSecurityModule) isPaddingOracleVulnerable(responseBody string) bool {
-	// Padding oracle vulnerability göstergeleri
+	// Padding oracle vulnerability indicators
 	oracleIndicators := []string{
 		"padding is invalid",
 		"Invalid viewstate",
