@@ -244,23 +244,26 @@ make build
 make build-all
 ```
 
-## 📝 Lisans
+## 📝 License
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-## 🤝 Katkıda Bulunma
+## 🤝 Contributing
 
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit edin (`git commit -m 'Add amazing feature'`)
-4. Push edin (`git push origin feature/amazing-feature`)
-5. Pull Request oluşturun
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Create a Pull Request
 
-## 📞 İletişim
+## 📞 Contact
 
-- GitHub Issues: Bug raporları ve feature istekleri için
-- Email: security@example.com
+- GitHub Issues: For bug reports and feature requests
+- Email: ibrahimsql@proton.me
 
 ---
+
+**Disclaimer**: This tool is developed for educational and legal penetration testing purposes only. The user bears all responsibility for any misuse.
+
 
 **Disclaimer**: Bu araç eğitim ve yasal penetrasyon testi amaçları için geliştirilmiştir. Kötüye kullanımdan doğacak sorumluluk kullanıcıya aittir.
