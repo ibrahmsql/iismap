@@ -86,9 +86,6 @@ make filehunter
 git clone https://github.com/ibrahmsql/iismap.git
 cd iismap
 
-# Install dependencies
-go mod tidy
-
 # Build main binary
 go build -o iismap .
 
