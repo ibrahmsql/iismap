@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ibrahmsql/issmap/internal/config"
-	"github.com/ibrahmsql/issmap/internal/scanner"
-	"github.com/ibrahmsql/issmap/pkg/logger"
+	"github.com/ibrahmsql/iismap/internal/config"
+	"github.com/ibrahmsql/iismap/internal/scanner"
+	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
 // Reporter rapor oluşturucu

@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ibrahmsql/issmap/internal/config"
-	"github.com/ibrahmsql/issmap/pkg/http"
-	"github.com/ibrahmsql/issmap/pkg/logger"
+	"github.com/ibrahmsql/iismap/internal/config"
+	"github.com/ibrahmsql/iismap/pkg/http"
+	"github.com/ibrahmsql/iismap/pkg/logger"
 
 	wappalyzer "github.com/projectdiscovery/wappalyzergo"
 )
 
-// WappalyzerDetectionModule Wappalyzer ile teknoloji tespit modülü
+// WappalyzerDetectionModule technology detection module using Wappalyzer
 type WappalyzerDetectionModule struct {
 	*BaseModule
 	config           *config.Config
@@ -19,11 +19,11 @@ type WappalyzerDetectionModule struct {
 	wappalyzerClient *wappalyzer.Wappalyze
 }
 
-// NewWappalyzerDetectionModule yeni Wappalyzer detection modülü oluşturur
+// NewWappalyzerDetectionModule creates a new Wappalyzer detection module
 func NewWappalyzerDetectionModule(cfg *config.Config, log *logger.Logger) Module {
 	wappalyzerClient, err := wappalyzer.New()
 	if err != nil {
-		log.Error("Wappalyzer client oluşturulamadı: %v", err)
+		log.Error("Failed to create Wappalyzer client: %v", err)
 		return nil
 	}
 
@@ -35,7 +35,7 @@ func NewWappalyzerDetectionModule(cfg *config.Config, log *logger.Logger) Module
 	}
 }
 
-// Run Wappalyzer detection modülünü çalıştırır
+// Run executes the Wappalyzer detection module
 func (w *WappalyzerDetectionModule) Run(client *http.Client) (*ModuleResult, error) {
 	w.Start()
 	defer w.End()
@@ -45,8 +45,8 @@ func (w *WappalyzerDetectionModule) Run(client *http.Client) (*ModuleResult, err
 
 	baseURL := w.config.GetBaseURL()
 
-	// Ana sayfayı al
-	w.logger.Debug("Wappalyzer ile teknoloji tespiti yapılıyor...")
+	// Get the main page
+	w.logger.Debug("Performing technology detection with Wappalyzer...")
 	resp, err := client.Get(baseURL)
 	if err != nil {
 		return w.CreateResult("ERROR", vulnerabilities, info, err), nil
@@ -56,77 +56,77 @@ func (w *WappalyzerDetectionModule) Run(client *http.Client) (*ModuleResult, err
 	// Wappalyzer fingerprinting
 	fingerprints := w.wappalyzerClient.Fingerprint(resp.Headers, []byte(resp.Body))
 
-	// Tespit edilen teknolojileri logla
-	w.logger.Debug("Tespit edilen teknolojiler: %v", fingerprints)
+	// Log detected technologies
+	w.logger.Debug("Detected technologies: %v", fingerprints)
 
-	// Teknoloji bilgilerini info olarak ekle
+	// Add technology information as info
 	for tech := range fingerprints {
 		info = append(info, CreateInformation("detected_technology", "Detected Technology",
-			"Wappalyzer ile tespit edilen teknoloji", tech))
+			"Technology detected by Wappalyzer", tech))
 	}
 
-	// Windows/IIS kontrolü
+	// Windows/IIS detection
 	isWindows := w.isWindowsServer(fingerprints)
 	isIIS := w.isIISServer(fingerprints)
 
 	if isWindows {
 		info = append(info, CreateInformation("os_detection", "Operating System",
-			"Tespit edilen işletim sistemi", "Windows"))
-		w.logger.Success("✅ Windows Server tespit edildi (Wappalyzer)")
+			"Detected operating system", "Windows"))
+		w.logger.Success("✅ Windows Server detected (Wappalyzer)")
 	}
 
 	if isIIS {
 		info = append(info, CreateInformation("web_server", "Web Server",
-			"Tespit edilen web sunucusu", "Microsoft IIS"))
-		w.logger.Success("✅ Microsoft IIS tespit edildi (Wappalyzer)")
+			"Detected web server", "Microsoft IIS"))
+		w.logger.Success("✅ Microsoft IIS detected (Wappalyzer)")
 
-		// IIS versiyon tespiti
+		// IIS version detection
 		iisVersion := w.getIISVersion(fingerprints)
 		if iisVersion != "" {
 			info = append(info, CreateInformation("iis_version", "IIS Version",
-				"Tespit edilen IIS versiyonu", iisVersion))
+				"Detected IIS version", iisVersion))
 		}
 	}
 
-	// ASP.NET tespiti
+	// ASP.NET detection
 	if w.isASPNET(fingerprints) {
 		info = append(info, CreateInformation("framework", "Web Framework",
-			"Tespit edilen web framework", "ASP.NET"))
-		w.logger.Success("✅ ASP.NET tespit edildi (Wappalyzer)")
+			"Detected web framework", "ASP.NET"))
+		w.logger.Success("✅ ASP.NET detected (Wappalyzer)")
 
-		// ASP.NET versiyon tespiti
+		// ASP.NET version detection
 		aspnetVersion := w.getASPNETVersion(fingerprints)
 		if aspnetVersion != "" {
 			info = append(info, CreateInformation("aspnet_version", "ASP.NET Version",
-				"Tespit edilen ASP.NET versiyonu", aspnetVersion))
+				"Detected ASP.NET version", aspnetVersion))
 		}
 	}
 
-	// Windows Server kontrolü - eğer Windows değilse zafiyet olarak işaretle
+	// Windows Server check - mark as vulnerability if not Windows
 	if !isWindows && !isIIS {
 		vuln := CreateVulnerability(
 			"WAPP-DETECT-001",
 			"Non-Windows/IIS Server Detected",
-			"Hedef sistem Windows Server/IIS değil. Bu araç sadece IIS sunucuları için tasarlanmıştır.",
+			"Target system is not Windows Server/IIS. This tool is designed specifically for IIS servers.",
 			"INFO",
 			0.0,
 		)
 		vuln.URL = baseURL
-		vuln.Evidence = fmt.Sprintf("Tespit edilen teknolojiler: %v", w.getTechnologyList(fingerprints))
-		vuln.Remediation = "IIS taraması için Windows Server ve Microsoft IIS gereklidir"
+		vuln.Evidence = fmt.Sprintf("Detected technologies: %v", w.getTechnologyList(fingerprints))
+		vuln.Remediation = "Windows Server and Microsoft IIS are required for IIS scanning"
 		vulnerabilities = append(vulnerabilities, vuln)
 
-		w.logger.Error("❌ Windows Server/IIS tespit edilmedi (Wappalyzer)")
+		w.logger.Error("❌ Windows Server/IIS not detected (Wappalyzer)")
 	}
 
-	// Ek güvenlik kontrolleri
+	// Additional security checks
 	securityVulns := w.checkSecurityTechnologies(fingerprints, baseURL)
 	vulnerabilities = append(vulnerabilities, securityVulns...)
 
 	return w.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }
 
-// isWindowsServer Windows Server olup olmadığını kontrol eder
+// isWindowsServer checks if the server is Windows Server
 func (w *WappalyzerDetectionModule) isWindowsServer(fingerprints map[string]struct{}) bool {
 	windowsIndicators := []string{
 		"Windows Server",
@@ -145,7 +145,7 @@ func (w *WappalyzerDetectionModule) isWindowsServer(fingerprints map[string]stru
 	return false
 }
 
-// isIISServer IIS sunucu olup olmadığını kontrol eder
+// isIISServer checks if the server is IIS
 func (w *WappalyzerDetectionModule) isIISServer(fingerprints map[string]struct{}) bool {
 	iisIndicators := []string{
 		"Microsoft IIS",
@@ -161,7 +161,7 @@ func (w *WappalyzerDetectionModule) isIISServer(fingerprints map[string]struct{}
 	return false
 }
 
-// isASPNET ASP.NET olup olmadığını kontrol eder
+// isASPNET checks if the server is running ASP.NET
 func (w *WappalyzerDetectionModule) isASPNET(fingerprints map[string]struct{}) bool {
 	aspnetIndicators := []string{
 		"ASP.NET",
@@ -179,12 +179,12 @@ func (w *WappalyzerDetectionModule) isASPNET(fingerprints map[string]struct{}) b
 	return false
 }
 
-// getIISVersion IIS versiyonunu tespit eder
+// getIISVersion detects the IIS version
 func (w *WappalyzerDetectionModule) getIISVersion(fingerprints map[string]struct{}) string {
-	// Wappalyzer'dan versiyon bilgisi almaya çalış
+	// Try to get version information from Wappalyzer
 	for tech := range fingerprints {
 		if strings.Contains(tech, "IIS") {
-			// IIS version pattern'ları
+			// IIS version patterns
 			if strings.Contains(tech, "10.0") {
 				return "10.0"
 			} else if strings.Contains(tech, "8.5") {
@@ -204,11 +204,11 @@ func (w *WappalyzerDetectionModule) getIISVersion(fingerprints map[string]struct
 	return ""
 }
 
-// getASPNETVersion ASP.NET versiyonunu tespit eder
+// getASPNETVersion detects the ASP.NET version
 func (w *WappalyzerDetectionModule) getASPNETVersion(fingerprints map[string]struct{}) string {
 	for tech := range fingerprints {
 		if strings.Contains(tech, "ASP.NET") || strings.Contains(tech, ".NET") {
-			// ASP.NET version pattern'ları
+			// ASP.NET version patterns
 			if strings.Contains(tech, "Core") {
 				return "ASP.NET Core"
 			} else if strings.Contains(tech, "4.8") {
@@ -232,7 +232,7 @@ func (w *WappalyzerDetectionModule) getASPNETVersion(fingerprints map[string]str
 	return ""
 }
 
-// getTechnologyList teknoloji listesini string olarak döndürür
+// getTechnologyList returns the technology list as a string
 func (w *WappalyzerDetectionModule) getTechnologyList(fingerprints map[string]struct{}) string {
 	var technologies []string
 	for tech := range fingerprints {
@@ -241,11 +241,11 @@ func (w *WappalyzerDetectionModule) getTechnologyList(fingerprints map[string]st
 	return strings.Join(technologies, ", ")
 }
 
-// checkSecurityTechnologies güvenlik teknolojilerini kontrol eder
+// checkSecurityTechnologies checks for security technologies
 func (w *WappalyzerDetectionModule) checkSecurityTechnologies(fingerprints map[string]struct{}, baseURL string) []Vulnerability {
 	var vulns []Vulnerability
 
-	// Güvenlik teknolojileri
+	// Security technologies
 	securityTechs := map[string]string{
 		"Cloudflare":     "CDN/WAF",
 		"AWS CloudFront": "CDN",
@@ -259,26 +259,26 @@ func (w *WappalyzerDetectionModule) checkSecurityTechnologies(fingerprints map[s
 	for tech := range fingerprints {
 		if description, exists := securityTechs[tech]; exists {
 			foundSecurity = true
-			w.logger.Info("🛡️  Güvenlik teknolojisi tespit edildi: %s (%s)", tech, description)
+			w.logger.Info("🛡️  Security technology detected: %s (%s)", tech, description)
 		}
 	}
 
-	// Güvenlik teknolojisi yoksa uyarı
+	// Warning if no security technology found
 	if !foundSecurity {
 		vuln := CreateVulnerability(
 			"WAPP-DETECT-002",
 			"No Security Technologies Detected",
-			"Herhangi bir güvenlik teknolojisi (WAF, CDN) tespit edilmedi",
+			"No security technologies (WAF, CDN) were detected",
 			"LOW",
 			3.1,
 		)
 		vuln.URL = baseURL
-		vuln.Evidence = "WAF, CDN veya güvenlik teknolojisi bulunamadı"
-		vuln.Remediation = "WAF (Web Application Firewall) veya CDN kullanmayı düşünün"
+		vuln.Evidence = "No WAF, CDN or security technology found"
+		vuln.Remediation = "Consider using WAF (Web Application Firewall) or CDN"
 		vulns = append(vulns, vuln)
 	}
 
-	// Eski teknolojiler kontrolü
+	// Check for outdated technologies
 	oldTechs := []string{
 		"jQuery 1.",
 		"Bootstrap 2.",
@@ -293,13 +293,13 @@ func (w *WappalyzerDetectionModule) checkSecurityTechnologies(fingerprints map[s
 				vuln := CreateVulnerability(
 					"WAPP-DETECT-003",
 					"Outdated Technology Detected",
-					fmt.Sprintf("Eski teknoloji tespit edildi: %s", tech),
+					fmt.Sprintf("Outdated technology detected: %s", tech),
 					"MEDIUM",
 					5.3,
 				)
 				vuln.URL = baseURL
-				vuln.Evidence = fmt.Sprintf("Eski teknoloji: %s", tech)
-				vuln.Remediation = "Teknolojileri güncel versiyonlara yükseltin"
+				vuln.Evidence = fmt.Sprintf("Outdated technology: %s", tech)
+				vuln.Remediation = "Upgrade technologies to current versions"
 				vulns = append(vulns, vuln)
 			}
 		}

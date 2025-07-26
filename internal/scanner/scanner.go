@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ibrahmsql/issmap/internal/config"
-	"github.com/ibrahmsql/issmap/modules"
-	"github.com/ibrahmsql/issmap/pkg/http"
-	"github.com/ibrahmsql/issmap/pkg/logger"
+	"github.com/ibrahmsql/iismap/internal/config"
+	"github.com/ibrahmsql/iismap/modules"
+	"github.com/ibrahmsql/iismap/pkg/http"
+	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
 // Scanner ana tarama motoru
@@ -52,15 +52,13 @@ func (s *Scanner) Scan() (Results, error) {
 
 		// Windows Server kontrolü
 		if !s.isWindowsServer(windowsResult) {
-			s.logger.Error("❌ HEDEF SİSTEM WINDOWS SERVER DEĞİL!")
-			s.logger.Error("❌ IIS sadece Windows Server üzerinde çalışır.")
-			s.logger.Error("❌ Tarama durduruluyor...")
-
-			// Non-Windows için özel hata döndür
-			return results, fmt.Errorf("hedef sistem Windows Server değil - IIS taraması yapılamaz")
+			s.logger.Error("❌ TARGET SYSTEM IS NOT DETECTED AS WINDOWS SERVER!")
+			s.logger.Error("❌ IIS normally runs only on Windows Server.")
+			s.logger.Error("❌ Scan terminated. Use --force flag to bypass this check.")
+			return results, fmt.Errorf("target system is not Windows Server")
+		} else {
+			s.logger.Success("✅ Windows Server detected - IIS scan continuing")
 		}
-
-		s.logger.Success("✅ Windows Server tespit edildi - IIS taraması devam ediyor")
 	} else {
 		s.logger.Warning("⚠️  Windows detection modülü bulunamadı - tarama devam ediyor")
 	}
@@ -101,7 +99,7 @@ func (s *Scanner) Scan() (Results, error) {
 			// Modülü çalıştır
 			result, err := mod.Run(s.httpClient)
 			if err != nil {
-				s.logger.Error("Modül hatası [%s]: %v", mod.Name(), err)
+				s.logger.Error("Module error [%s]: %v", mod.Name(), err)
 				result = &modules.ModuleResult{
 					ModuleName:      mod.Name(),
 					Status:          "ERROR",
@@ -115,17 +113,17 @@ func (s *Scanner) Scan() (Results, error) {
 			results[mod.Name()] = result
 			mu.Unlock()
 
-			// Zafiyet sayısını logla
+			// Log vulnerability count
 			vulnCount := len(result.Vulnerabilities)
 			if vulnCount > 0 {
-				s.logger.Warning("Modül [%s]: %d zafiyet tespit edildi", mod.Name(), vulnCount)
+				s.logger.Warning("Module [%s]: %d vulnerabilities detected", mod.Name(), vulnCount)
 
-				// Her zafiyeti logla
+				// Log each vulnerability
 				for _, vuln := range result.Vulnerabilities {
 					s.logger.Vulnerability(vuln.Severity, vuln.Title)
 				}
 			} else {
-				s.logger.Success("Modül [%s]: Zafiyet tespit edilmedi", mod.Name())
+				s.logger.Success("Module [%s]: No vulnerabilities detected", mod.Name())
 			}
 		}(module)
 	}
@@ -147,22 +145,13 @@ func loadModules(cfg *config.Config, log *logger.Logger) []modules.Module {
 		"windows_detection":      modules.NewWindowsDetectionModule,
 		"fingerprint":            modules.NewFingerprintModule,
 		"tilde":                  modules.NewTildeModule,
-		"enhanced_tilde":         modules.NewEnhancedTildeModule,
-		"advanced_shortscan":     modules.NewAdvancedShortscanModule,
 		"config":                 modules.NewConfigModule,
 		"aspnet":                 modules.NewASPNETModule,
 		"http_methods":           modules.NewHTTPMethodsModule,
 		"ssl_tls":                modules.NewSSLTLSModule,
-		"path_traversal":         modules.NewPathTraversalModule,
 		"handlers":               modules.NewHandlersModule,
-		"auth_bypass":            modules.NewAuthBypassModule,
 		"buffer_overflow":        modules.NewBufferOverflowModule,
-		"webdav":                 modules.NewWebDAVModule,
-		"information_disclosure": modules.NewInformationDisclosureModule,
-		"file_upload":            modules.NewFileUploadModule,
-		"sql_injection":          modules.NewSQLInjectionModule,
-		"xss":                    modules.NewXSSModule,
-		"csrf":                   modules.NewCSRFModule,
+		"filehunter":             modules.NewFileHunterModule,
 	}
 
 	// Seçilen modülleri yükle

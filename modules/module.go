@@ -3,17 +3,17 @@ package modules
 import (
 	"time"
 
-	"github.com/ibrahmsql/issmap/pkg/http"
+	"github.com/ibrahmsql/iismap/pkg/http"
 )
 
-// Module interface tüm tarama modülleri için
+// Module interface for all scanning modules
 type Module interface {
 	Name() string
 	Description() string
 	Run(client *http.Client) (*ModuleResult, error)
 }
 
-// ModuleResult modül sonuç yapısı
+// ModuleResult module result structure
 type ModuleResult struct {
 	ModuleName      string          `json:"module_name"`
 	Status          string          `json:"status"`
@@ -26,7 +26,7 @@ type ModuleResult struct {
 	Error           string          `json:"error,omitempty"`
 }
 
-// Vulnerability zafiyet yapısı
+// Vulnerability vulnerability structure
 type Vulnerability struct {
 	ID          string            `json:"id"`
 	Title       string            `json:"title"`
@@ -45,7 +45,7 @@ type Vulnerability struct {
 	Metadata    map[string]string `json:"metadata"`
 }
 
-// Information bilgi yapısı
+// Information information structure
 type Information struct {
 	Type        string            `json:"type"`
 	Title       string            `json:"title"`
@@ -55,7 +55,7 @@ type Information struct {
 	Metadata    map[string]string `json:"metadata"`
 }
 
-// BaseModule temel modül yapısı
+// BaseModule base module structure
 type BaseModule struct {
 	name        string
 	description string
@@ -64,7 +64,7 @@ type BaseModule struct {
 	requests    int
 }
 
-// NewBaseModule yeni temel modül oluşturur
+// NewBaseModule creates a new base module
 func NewBaseModule(name, description string) *BaseModule {
 	return &BaseModule{
 		name:        name,
@@ -72,33 +72,33 @@ func NewBaseModule(name, description string) *BaseModule {
 	}
 }
 
-// Name modül adını döndürür
+// Name returns the module name
 func (b *BaseModule) Name() string {
 	return b.name
 }
 
-// Description modül açıklamasını döndürür
+// Description returns the module description
 func (b *BaseModule) Description() string {
 	return b.description
 }
 
-// Start modül başlangıcını işaretler
+// Start marks the module start
 func (b *BaseModule) Start() {
 	b.startTime = time.Now()
 	b.requests = 0
 }
 
-// End modül bitişini işaretler
+// End marks the module end
 func (b *BaseModule) End() {
 	b.endTime = time.Now()
 }
 
-// IncrementRequests istek sayısını artırır
+// IncrementRequests increments the request count
 func (b *BaseModule) IncrementRequests() {
 	b.requests++
 }
 
-// CreateResult sonuç yapısı oluşturur
+// CreateResult creates a result structure
 func (b *BaseModule) CreateResult(status string, vulnerabilities []Vulnerability, info []Information, err error) *ModuleResult {
 	result := &ModuleResult{
 		ModuleName:      b.name,
@@ -118,7 +118,7 @@ func (b *BaseModule) CreateResult(status string, vulnerabilities []Vulnerability
 	return result
 }
 
-// CreateVulnerability zafiyet oluşturur
+// CreateVulnerability creates a vulnerability
 func CreateVulnerability(id, title, description, severity string, cvss float64) Vulnerability {
 	return Vulnerability{
 		ID:          id,
@@ -131,7 +131,7 @@ func CreateVulnerability(id, title, description, severity string, cvss float64) 
 	}
 }
 
-// CreateInformation bilgi oluşturur
+// CreateInformation creates an information
 func CreateInformation(infoType, title, description, value string) Information {
 	return Information{
 		Type:        infoType,

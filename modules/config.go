@@ -1,12 +1,11 @@
 package modules
-
 import (
 	"fmt"
 	"strings"
 
-	"github.com/ibrahmsql/issmap/internal/config"
-	"github.com/ibrahmsql/issmap/pkg/http"
-	"github.com/ibrahmsql/issmap/pkg/logger"
+	"github.com/ibrahmsql/iismap/internal/config"
+	"github.com/ibrahmsql/iismap/pkg/http"
+	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
 // ConfigModule IIS Configuration Vulnerabilities modülü

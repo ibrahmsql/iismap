@@ -1,4 +1,4 @@
-package shortu
+package shortutil
 
 import (
 	"bufio"
@@ -14,7 +14,7 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/fatih/color"
-	"github.com/ibrahmsql/issmap/pkg/maths"
+	"github.com/ibrahmsql/iismap/pkg/maths"
 )
 
 type wordlistRecord struct {

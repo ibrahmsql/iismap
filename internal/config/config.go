@@ -17,6 +17,7 @@ type Config struct {
 
 	// Modül seçenekleri
 	Modules       []string
+	Wordlist      string
 	Comprehensive bool
 	Fast          bool
 

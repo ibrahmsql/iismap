@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/rand"
+	mathRand "math/rand"
 	"net/url"
 	"strings"
 	"time"
@@ -70,7 +70,7 @@ func (e *EvasionEngine) ApplyRandomEvasion(input string) string {
 		return input
 	}
 	
-	technique := e.techniques[rand.Intn(len(e.techniques))]
+	technique := e.techniques[mathRand.Intn(len(e.techniques))]
 	return technique.Apply(input)
 }
 
@@ -80,7 +80,7 @@ func (e *EvasionEngine) ApplyMultipleEvasions(input string, count int) string {
 	usedTechniques := make(map[string]bool)
 	
 	for i := 0; i < count && len(usedTechniques) < len(e.techniques); i++ {
-		technique := e.techniques[rand.Intn(len(e.techniques))]
+		technique := e.techniques[mathRand.Intn(len(e.techniques))]
 		if !usedTechniques[technique.Name()] {
 			result = technique.Apply(result)
 			usedTechniques[technique.Name()] = true
@@ -92,7 +92,7 @@ func (e *EvasionEngine) ApplyMultipleEvasions(input string, count int) string {
 
 // GetRandomUserAgent rastgele user agent döndürür
 func (e *EvasionEngine) GetRandomUserAgent() string {
-	return e.userAgents[rand.Intn(len(e.userAgents))]
+	return e.userAgents[mathRand.Intn(len(e.userAgents))]
 }
 
 // GetRandomDelay rastgele gecikme döndürür
@@ -100,7 +100,7 @@ func (e *EvasionEngine) GetRandomDelay(min, max time.Duration) time.Duration {
 	if max <= min {
 		return min
 	}
-	return min + time.Duration(rand.Int63n(int64(max-min)))
+	return min + time.Duration(mathRand.Int63n(int64(max-min)))
 }
 
 // URLEncoding URL encoding evasion tekniği
@@ -209,7 +209,7 @@ func (c *CaseVariation) Description() string {
 func (c *CaseVariation) Apply(input string) string {
 	result := ""
 	for _, char := range input {
-		if rand.Intn(2) == 0 {
+		if mathRand.Intn(2) == 0 {
 			result += strings.ToUpper(string(char))
 		} else {
 			result += strings.ToLower(string(char))
@@ -240,7 +240,7 @@ func (p *PathFragmentation) Apply(input string) string {
 		"%2e%2e%5c",
 	}
 	
-	fragment := fragments[rand.Intn(len(fragments))]
+	fragment := fragments[mathRand.Intn(len(fragments))]
 	return fragment + input
 }
 
@@ -372,7 +372,7 @@ func NewCustomEvasionPayloads() *CustomEvasionPayloads {
 
 // GetRandomIISPayload rastgele IIS payload'ı döndürür
 func (c *CustomEvasionPayloads) GetRandomIISPayload() string {
-	return c.IISSpecific[rand.Intn(len(c.IISSpecific))]
+	return c.IISSpecific[mathRand.Intn(len(c.IISSpecific))]
 }
 
 // ProxyRotation proxy rotation utilities
@@ -406,7 +406,7 @@ func (p *ProxyRotation) GetRandomProxy() string {
 		return ""
 	}
 	
-	return p.Proxies[rand.Intn(len(p.Proxies))]
+	return p.Proxies[mathRand.Intn(len(p.Proxies))]
 }
 
 // SSLPinningBypass SSL certificate pinning bypass

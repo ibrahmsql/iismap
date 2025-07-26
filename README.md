@@ -1,8 +1,46 @@
 # IIS Security Scanner Framework
 
-Kapsamlı IIS (Internet Information Services) güvenlik tarama ve zafiyet tespit framework'ü. Go dilinde yazılmış, yüksek performanslı ve modüler yapıda.
+Comprehensive IIS (Internet Information Services) security scanning and vulnerability detection framework. Written in Go with high performance and modular architecture.
 
-## 🚀 Özellikler
+## 🚀 Features
+
+### FileHunter - IIS File Discovery Tool
+
+**FileHunter** is an  tool developed to discover hidden files and directories on IIS servers. It enumerates 8.3 format filenames using the tilde (~) character vulnerability.
+
+#### FileHunter Features:
+- **Comprehensive Wordlists**: Multiple specialized wordlists with 100,000+ entries
+  - `bg_comprehensive_wordlist.txt`: Background comprehensive wordlist (default)
+  - `security_pentest_wordlist.txt`: Security and penetration testing focused
+  - `admin_management_wordlist.txt`: Administrative interfaces and management panels
+  - `api_webservices_wordlist.txt`: API endpoints and web services
+  - `extended_wordlist.txt`: Extended educational and general purpose entries
+- **Intelligent Enumeration**: Automatic completion and character set detection
+- **High Performance**: Concurrent request processing
+- **Stealth Mode**: Non-destructive scanning approach
+- **Multiple Format Support**: JSON and human-readable output
+- **International Support**: Fully internationalized with English interface
+
+#### FileHunter Usage:
+```bash
+# Build FileHunter
+make filehunter
+
+# Basic scan
+./build/filehunter https://target.com
+
+# Verbose mode
+./build/filehunter https://target.com -v 1
+
+# JSON output
+./build/filehunter https://target.com -o json
+
+# Custom wordlist
+./build/filehunter https://target.com -w custom_wordlist.txt
+
+# Use specific wordlist
+./build/filehunter https://target.com -w pkg/filehunter/resources/security_pentest_wordlist.txt
+```
 
 ### Core Modules
 - **IIS Fingerprinting & Version Detection**: Server header analizi, ETW leak tespiti, version-specific pattern analizi
@@ -23,93 +61,93 @@ Kapsamlı IIS (Internet Information Services) güvenlik tarama ve zafiyet tespit
 - **Stealth & Performance**: Intelligent request throttling, distributed scanning, proxy chain support
 - **Concurrent Scanning**: Goroutine-based parallel processing, configurable thread limits
 
-## 📦 Kurulum
+## 📦 Installation
 
-### Gereksinimler
-- Go 1.21 veya üzeri
+### Requirements
+- Go 1.21 or higher
 - Git
 
-### Kurulum Adımları
+### Installation Steps
 
 ```bash
-# Repository'yi klonla
+# Clone the repository
 git clone https://github.com/ibrahmsql/iismap.git
 cd issmap
 
-# Dependencies'leri yükle
+# Install dependencies
 go mod tidy
 
-# Binary'yi derle
+# Build binary
 go build -o issmap .
 
-# Veya Makefile kullan
+# Or use Makefile
 make build
 ```
 
-## 🔧 Kullanım
+## 🔧 Usage
 
-### Temel Kullanım
+### Basic Usage
 
 ```bash
-# Temel tarama
+# Basic scan
 ./issmap --target https://target.com
 
-# Kapsamlı tarama (tüm modüller)
+# Comprehensive scan (all modules)
 ./issmap --target https://target.com --comprehensive
 
-# Belirli modülleri çalıştır
+# Run specific modules
 ./issmap --target https://target.com --modules fingerprint,tilde,config
 
-# Verbose output ile
+# Verbose output
 ./issmap --target https://target.com --verbose
 
-# Debug modu
+# Debug mode
 ./issmap --target https://target.com --debug
 ```
 
-### Gelişmiş Seçenekler
+###  Options
 
 ```bash
-# Stealth mode (yavaş tarama)
+# Stealth mode (slow scanning)
 ./issmap --target https://target.com --stealth --delay 2
 
-# Özel thread sayısı
+# Custom thread count
 ./issmap --target https://target.com --threads 20
 
-# Proxy kullanımı
+# Proxy usage
 ./issmap --target https://target.com --proxy http://proxy:8080
 
-# Özel User-Agent
+# Custom User-Agent
 ./issmap --target https://target.com --user-agent "Custom Scanner 1.0"
 
-# Özel header'lar
+# Custom headers
 ./issmap --target https://target.com --headers "Authorization: Bearer token123"
 
-# Cookie'ler
+# Cookies
 ./issmap --target https://target.com --cookies "session=abc123; auth=xyz789"
 
-# Farklı output formatları
+# Different output formats
 ./issmap --target https://target.com --format html --output report.html
 ./issmap --target https://target.com --format json --output report.json
 ./issmap --target https://target.com --format xml --output report.xml
 ```
 
-### Mevcut Modüller
+### Available Modules
 
-| Modül | Açıklama | Durum |
-|-------|----------|-------|
-| `fingerprint` | IIS version detection & fingerprinting | ✅ Aktif |
-| `tilde` | Tilde (~) character vulnerability | ✅ Aktif |
-| `config` | Configuration file exposure | ✅ Aktif |
-| `path_traversal` | Path traversal attacks | 🚧 Geliştiriliyor |
-| `aspnet` | ASP.NET specific vulnerabilities | 🚧 Geliştiriliyor |
-| `handlers` | HTTP handler vulnerabilities | 🚧 Geliştiriliyor |
-| `auth_bypass` | Authentication bypass | 🚧 Geliştiriliyor |
-| `buffer_overflow` | Buffer overflow & DoS | 🚧 Geliştiriliyor |
-| `webdav` | WebDAV vulnerabilities | 🚧 Geliştiriliyor |
-| `ssl_tls` | SSL/TLS specific issues | 🚧 Geliştiriliyor |
+| Module | Description | Status |
+|--------|-------------|--------|
+| `fingerprint` | IIS version detection & fingerprinting | ✅ Active |
+| `tilde` | Tilde (~) character vulnerability | ✅ Active |
+| `config` | Configuration file exposure | ✅ Active |
+| `path_traversal` | Path traversal attacks | 🚧 In Development |
+| `aspnet` | ASP.NET specific vulnerabilities | 🚧 In Development |
+| `handlers` | HTTP handler vulnerabilities | 🚧 In Development |
+| `auth_bypass` | Authentication bypass | 🚧 In Development |
+| `buffer_overflow` | Buffer overflow & DoS | 🚧 In Development |
+| `webdav` | WebDAV vulnerabilities | 🚧 In Development |
+| `ssl_tls` | SSL/TLS specific issues | 🚧 In Development |
 
-## 📊 Rapor Örnekleri
+## 📊 Report Examples
 
 ### JSON Output
 ```json
@@ -136,25 +174,25 @@ make build
 }
 ```
 
-### HTML Raporu
-Framework otomatik olarak profesyonel HTML raporları oluşturur:
+### HTML Report
+The framework automatically generates professional HTML reports:
 - Executive summary
 - Vulnerability details with CVSS scores
 - Remediation recommendations
 - Technical evidence
 
-## 🛡️ Güvenlik Uyarıları
+## 🛡️ Security Warnings
 
-⚠️ **UYARI**: Bu araç sadece yetkili penetrasyon testleri ve güvenlik değerlendirmeleri için tasarlanmıştır.
+⚠️ **WARNING**: This tool is designed only for authorized penetration testing and security assessments.
 
-- Sadece sahip olduğunuz veya test etme yetkisine sahip olduğunuz sistemlerde kullanın
-- Üçüncü taraf sistemlerde kullanmadan önce yazılı izin alın
-- Rate limiting ve stealth modunu kullanarak hedef sistemlere zarar vermekten kaçının
-- Yasal sorumluluk tamamen kullanıcıya aittir
+- Use only on systems you own or have explicit permission to test
+- Obtain written authorization before using on third-party systems
+- Use rate limiting and stealth mode to avoid damaging target systems
+- Legal responsibility lies entirely with the user
 
-## 🔧 Geliştirme
+## 🔧 Development
 
-### Yeni Modül Ekleme
+### Adding New Modules
 
 ```go
 // modules/custom_module.go

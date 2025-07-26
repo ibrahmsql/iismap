@@ -1,4 +1,4 @@
-module github.com/ibrahmsql/issmap
+module github.com/ibrahmsql/iismap
 
 go 1.23.0
 

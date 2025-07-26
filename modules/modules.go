@@ -1,18 +1,19 @@
 package modules
 
 import (
-	"github.com/ibrahmsql/issmap/internal/config"
-	"github.com/ibrahmsql/issmap/pkg/http"
-	"github.com/ibrahmsql/issmap/pkg/logger"
+	"github.com/ibrahmsql/iismap/internal/config"
+	"github.com/ibrahmsql/iismap/pkg/http"
+	"github.com/ibrahmsql/iismap/pkg/logger"
 )
 
-// Placeholder modül factory fonksiyonları
-// Bu modüller tam implementasyon için hazır
+// Placeholder module factory functions
+// These modules are ready for full implementation
 
-func NewPathTraversalModule(cfg *config.Config, log *logger.Logger) Module {
+// NewFileHunterModule creates a FileHunter module
+func NewFileHunterModule(cfg *config.Config, log *logger.Logger) Module {
 	return &BaseModule{
-		name:        "path_traversal",
-		description: "IIS Path Traversal Vulnerabilities Scanner",
+		name:        "filehunter",
+		description: "IIS File and Directory Discovery Scanner",
 	}
 }
 
@@ -27,12 +28,7 @@ func NewHandlersModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-func NewAuthBypassModule(cfg *config.Config, log *logger.Logger) Module {
-	return &BaseModule{
-		name:        "auth_bypass",
-		description: "IIS Authentication Bypass Scanner",
-	}
-}
+
 
 func NewBufferOverflowModule(cfg *config.Config, log *logger.Logger) Module {
 	return &BaseModule{
@@ -41,12 +37,7 @@ func NewBufferOverflowModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-func NewWebDAVModule(cfg *config.Config, log *logger.Logger) Module {
-	return &BaseModule{
-		name:        "webdav",
-		description: "IIS WebDAV Vulnerabilities Scanner",
-	}
-}
+
 
 func NewSSLTLSModule(cfg *config.Config, log *logger.Logger) Module {
 	return NewSSLTLSSecurityModule(cfg, log)
@@ -87,7 +78,7 @@ func NewCSRFModule(cfg *config.Config, log *logger.Logger) Module {
 	}
 }
 
-// Placeholder Run implementasyonu BaseModule için
+// Placeholder Run implementation for BaseModule
 func (b *BaseModule) Run(client *http.Client) (*ModuleResult, error) {
 	b.Start()
 	defer b.End()
@@ -97,7 +88,7 @@ func (b *BaseModule) Run(client *http.Client) (*ModuleResult, error) {
 	var info []Information
 
 	info = append(info, CreateInformation("status", "Module Status",
-		"Bu modül henüz tam olarak implement edilmemiştir", "PLACEHOLDER"))
+		"This module has not been fully implemented yet", "PLACEHOLDER"))
 
 	return b.CreateResult("COMPLETED", vulnerabilities, info, nil), nil
 }

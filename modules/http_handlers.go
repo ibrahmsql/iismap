@@ -2,11 +2,10 @@ package modules
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/ibrahmsql/iismap/pkg/http"
 )
 
 // HTTPHandlerModule IIS HTTP handler zafiyetlerini tespit eder
@@ -486,7 +485,7 @@ func (m *HTTPHandlerModule) testVulnerableHandlers() []Vulnerability {
 }
 
 // isHandlerExposed handler'ın expose olup olmadığını kontrol eder
-func (m *HTTPHandlerModule) isHandlerExposed(resp *http.Response, handler HTTPHandler) bool {
+func (m *HTTPHandlerModule) isHandlerExposed(resp *http.Response, _ HTTPHandler) bool {
 	// Check status codes
 	if resp.StatusCode == 200 || resp.StatusCode == 500 {
 		return true

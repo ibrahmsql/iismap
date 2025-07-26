@@ -9,14 +9,14 @@ import (
 	"github.com/fatih/color"
 )
 
-// Logger yapısı
+// Logger structure
 type Logger struct {
 	verbose bool
 	debug   bool
 	logger  *log.Logger
 }
 
-// New yeni logger oluşturur
+// New creates a new logger
 func New(verbose, debug bool) *Logger {
 	return &Logger{
 		verbose: verbose,
@@ -25,7 +25,7 @@ func New(verbose, debug bool) *Logger {
 	}
 }
 
-// Info bilgi mesajı
+// Info logs an info message
 func (l *Logger) Info(format string, args ...interface{}) {
 	if l.verbose {
 		timestamp := time.Now().Format("15:04:05")
@@ -33,7 +33,7 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	}
 }
 
-// Success başarı mesajı
+// Success logs a success message
 func (l *Logger) Success(format string, args ...interface{}) {
 	if l.verbose {
 		timestamp := time.Now().Format("15:04:05")
@@ -41,7 +41,7 @@ func (l *Logger) Success(format string, args ...interface{}) {
 	}
 }
 
-// Warning uyarı mesajı
+// Warning logs a warning message
 func (l *Logger) Warning(format string, args ...interface{}) {
 	if l.verbose {
 		timestamp := time.Now().Format("15:04:05")
@@ -49,13 +49,13 @@ func (l *Logger) Warning(format string, args ...interface{}) {
 	}
 }
 
-// Error hata mesajı
+// Error logs an error message
 func (l *Logger) Error(format string, args ...interface{}) {
 	timestamp := time.Now().Format("15:04:05")
 	color.Red("[%s] [ERROR] %s", timestamp, fmt.Sprintf(format, args...))
 }
 
-// Debug debug mesajı
+// Debug logs a debug message
 func (l *Logger) Debug(format string, args ...interface{}) {
 	if l.debug {
 		timestamp := time.Now().Format("15:04:05")
@@ -63,7 +63,7 @@ func (l *Logger) Debug(format string, args ...interface{}) {
 	}
 }
 
-// Vulnerability zafiyet mesajı
+// Vulnerability logs a vulnerability message
 func (l *Logger) Vulnerability(severity, title string) {
 	var colorFunc func(string, ...interface{})
 
@@ -84,7 +84,7 @@ func (l *Logger) Vulnerability(severity, title string) {
 	colorFunc("[%s] [VULN] [%s] %s", timestamp, severity, title)
 }
 
-// Progress ilerleme mesajı
+// Progress logs a progress message
 func (l *Logger) Progress(current, total int, module string) {
 	if l.verbose {
 		percentage := float64(current) / float64(total) * 100

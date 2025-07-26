@@ -178,12 +178,21 @@ docker-run:
 	@echo "Running Docker container..."
 	docker run --rm -it $(BINARY_NAME):latest --target https://httpbin.org --verbose
 
+# Build filehunter tool
+.PHONY: filehunter
+filehunter:
+	@echo "Building FileHunter..."
+	@mkdir -p $(BUILD_DIR)
+	go build -o $(BUILD_DIR)/filehunter ./cmd/filehunter
+	@echo "FileHunter build completed: $(BUILD_DIR)/filehunter"
+
 # Help
 .PHONY: help
 help:
 	@echo "Available targets:"
 	@echo "  build         - Build the binary"
 	@echo "  build-all     - Build for multiple platforms"
+	@echo "  filehunter    - Build FileHunter tool"
 	@echo "  deps          - Install dependencies"
 	@echo "  test          - Run tests"
 	@echo "  test-coverage - Run tests with coverage"

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ibrahmsql/issmap/internal/config"
+	"github.com/ibrahmsql/iismap/internal/config"
 )
 
 // Client HTTP istemci yapısı
