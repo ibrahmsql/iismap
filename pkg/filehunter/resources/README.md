@@ -2,7 +2,7 @@
 
 ## Wordlist
 
-A custom wordlist was built for shortscan using data from the [GitHub dataset](https://console.cloud.google.com/marketplace/product/github/github-repos) hosted on BigQuery, which contains metadata from over 3 million GitHub repositories.
+A custom wordlist was built for using data from the [GitHub dataset](https://console.cloud.google.com/marketplace/product/github/github-repos) hosted on BigQuery, which contains metadata from over 3 million GitHub repositories.
 
 Included in the wordlist are files with extensions found in [Microsoft documentation](https://learn.microsoft.com/en-us/previous-versions/aspnet/2wawkw1c(v=vs.100)) and default IIS config handler definitions. Also included are the most common directories in which these types of file were found where the directory name was used by more than ten projects. Finally, the wordlist is topped up with `raft-large-files.txt` and `raft-large-directories.txt` from the [raft](https://code.google.com/archive/p/raft/) project, providing good general coverage.
 
